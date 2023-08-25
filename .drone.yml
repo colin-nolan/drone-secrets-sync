@@ -8,4 +8,4 @@ steps:
   - name: lint
     image: golangci/golangci-lint
     commands:
-      - golangci-lint run -v
+      - golangci-lint run -v --timeout 5m0s
