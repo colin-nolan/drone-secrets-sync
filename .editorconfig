@@ -1,0 +1,9 @@
+root = true
+
+[{*.go,Makefile,.gitmodules,go.mod,go.sum}]
+indent_style = tab
+
+[*.md]
+max_line_length = 120
+trim_trailing_whitespace = true
+
