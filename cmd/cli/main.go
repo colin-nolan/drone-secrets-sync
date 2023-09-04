@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -10,37 +12,61 @@ import (
 )
 
 func getUsage() string {
-	return "Usage: drone-secrets-manager [--help] key value"
+	return "Usage: drone-secrets-manager [--help]"
 }
 
 func main() {
 	helpFlag := flag.Bool("help", false, "Print help")
+	flag.Parse()
+
 	if *helpFlag {
-		fmt.Print(getUsage())
+		fmt.Println(getUsage())
 		return
 	}
 
-	if len(os.Args) != 3 {
-		log.Fatal(fmt.Sprintf("Invalid number of arguments\n%s", getUsage()))
-	}
-	key := os.Args[1]
-	value := os.Args[2]
-
-	syncSecret(key, value)
+	syncSecrets()
 }
 
-func syncSecret(key string, value string) {
+func syncSecrets() {
 	credential, err := secrets.GetCredentialFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
 	client := secrets.CreateClient(credential)
 
-	user, err := client.Self()
-	fmt.Println(user, err)
+	repositorySecretManager := secrets.RepositorySecretManager{
+		Client: client,
+		Owner:  "colin-nolan",
+		Name:   "drone-testing",
+	}
 
-	// client.Secret()
+	secrets := readSecretsFromStdin()
+	synced, err := repositorySecretManager.SyncSecrets(secrets, false)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	repo, err := client.Repo("drone", "drone-go")
-	fmt.Println(repo, err)
+	data, err := json.Marshal(synced)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(data))
+
+	return
+}
+
+func readSecretsFromStdin() []secrets.Secret {
+	inputData, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatal("Error reading from stdin:", err)
+	}
+
+	var secretValueMap map[string]interface{}
+	json.Unmarshal([]byte(inputData), &secretValueMap)
+
+	var secretValuePairs []secrets.Secret
+	for key, value := range secretValueMap {
+		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string)))
+	}
+	return secretValuePairs
 }

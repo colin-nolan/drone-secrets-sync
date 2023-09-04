@@ -1,69 +1,143 @@
 package secrets
 
 import (
-	"context"
-	"fmt"
-	"os"
+	"log"
 
+	"github.com/derekparker/trie"
 	"github.com/drone/drone-go/drone"
-	"golang.org/x/oauth2"
 )
 
-const (
-	DroneHostVariable  = "DRONE_HOST"
-	DroneTokenVariable = "DRONE_TOKEN"
-)
-
-type Credential struct {
-	host  string
-	token string
+type SecretManager interface {
+	ListSecrets() []MaskedSecret
+	ListSyncedSecrets() []MaskedSecret
+	SyncSecret(secret Secret, dryRun bool) (updated bool, err error)
+	SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error)
 }
 
-// Retrieves Drone credentials (host and token) from environment variables.
-//
-// This function reads the values of environment variables DroneHostVariable and DroneTokenVariable
-// and returns them as a Credential struct. It checks that both environment variables are set and
-// non-empty. If either of them is not set or empty, it returns an empty Credential and an error
-// describing which environment variable is missing or empty.
-//
-// Returns:
-//   - credential: A struct containing the host and token.
-//   - error: An error describing any issues with environment variable values.
-func GetCredentialFromEnv() (credential Credential, err error) {
-	host := os.Getenv(DroneHostVariable)
-	if host == "" {
-		return Credential{}, fmt.Errorf("%s environment variables must be set and non-empty", DroneHostVariable)
-	}
-	token := os.Getenv(DroneTokenVariable)
-	if token == "" {
-		return Credential{}, fmt.Errorf("%s environment variables must be set and non-empty", DroneTokenVariable)
-	}
-
-	return Credential{
-		host:  host,
-		token: token,
-	}, nil
+type RepositorySecretManager struct {
+	Client drone.Client
+	Owner  string
+	Name   string
 }
 
-// Creates a Drone client with the provided credential.
-//
-// This function takes a Credential struct as input, containing the Drone host and token.
-// It creates an OAuth2 client configuration and authorizes it using the provided access token.
-// Then, it constructs a Drone client using the specified host and the authorized OAuth2 client.
-//
-// Parameters:
-//   - credential: A Credential struct containing the Drone host and access token.
-//
-// Returns:
-//   - drone.Client: A configured Drone client for making API requests to the specified Drone instance.
-func CreateClient(credential Credential) drone.Client {
-	config := new(oauth2.Config)
-	auther := config.Client(
-		context.Background(),
-		&oauth2.Token{
-			AccessToken: credential.token,
+func (manager RepositorySecretManager) ListSecrets() []MaskedSecret {
+	secretEntries, err := manager.Client.SecretList(manager.Owner, manager.Name)
+	if err != nil {
+		log.Fatalf("Error getting secrets for repository %s/%s: %s", manager.Owner, manager.Name, err)
+	}
+
+	var secrets []MaskedSecret
+	for _, secretEntry := range secretEntries {
+		secrets = append(secrets, MaskedSecret{
+			Name: secretEntry.Name,
+		})
+	}
+
+	return secrets
+}
+
+func (manager RepositorySecretManager) ListSyncedSecrets() []MaskedSecret {
+	return GetManagedSecrets(manager.getSecretsPrefixTree())
+}
+
+func (manager RepositorySecretManager) SyncSecret(secret Secret, dryRun bool) (updated bool, err error) {
+	return manager.syncSecret(secret, manager.getSecretsPrefixTree(), dryRun)
+}
+
+func (manager RepositorySecretManager) SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error) {
+	var updatedSecretNames []SecretName = make([]string, 0)
+	for _, secret := range secrets {
+		updated, err := manager.syncSecret(secret, manager.getSecretsPrefixTree(), dryRun)
+		if updated {
+			updatedSecretNames = append(updatedSecretNames, secret.Name)
+		}
+		if err != nil {
+			return updatedSecretNames, err
+		}
+	}
+	return updatedSecretNames, nil
+}
+
+func (manager RepositorySecretManager) getSecretsPrefixTree() *trie.Trie {
+	secretsPrefixTree := trie.New()
+	for _, secret := range manager.ListSecrets() {
+		secretsPrefixTree.Add(secret.Name, secret)
+	}
+	return secretsPrefixTree
+}
+
+func (manager RepositorySecretManager) syncSecret(secret Secret, secrets *trie.Trie, dryRun bool) (updated bool, err error) {
+	if node, _ := secrets.Find(secret.Name); node != nil {
+		// Check if the secret value is already up to date based on the corresponding hash secret
+		if node, _ := secrets.Find(secret.HashedName()); node != nil {
+			return false, nil
+		}
+
+		if !dryRun {
+			// Remove old secret (required to avoid unique constraint error)
+			err = manager.Client.SecretDelete(manager.Owner, manager.Name, secret.Name)
+			if err != nil {
+				return true, err
+			}
+		}
+	}
+
+	if dryRun {
+		return true, nil
+	}
+
+	// Remove old secret hashes
+	matched := secrets.PrefixSearch(secret.HashedNamePrefix())
+	for _, match := range matched {
+		err = manager.Client.SecretDelete(manager.Owner, manager.Name, match)
+		if err != nil {
+			return true, err
+		}
+	}
+
+	// Add new secret and secret hash
+	for _, secretEntry := range []drone.Secret{
+		{
+			Namespace: manager.Owner,
+			Name:      secret.Name,
+			Data:      secret.Value,
 		},
-	)
+		{
+			Namespace: manager.Owner,
+			Name:      secret.HashedName(),
+			Data:      "1", // Secret must has a non-empty value
+		}} {
+		_, err = manager.Client.SecretCreate(manager.Owner, manager.Name, &secretEntry)
+		if err != nil {
+			return true, err
+		}
 
-	return drone.NewClient(credential.host, auther)
+	}
+
+	return true, nil
+}
+
+func GetManagedSecrets(secretsPrefixTree *trie.Trie) []MaskedSecret {
+	// Storing whether a secret has been considered as metadata on nodes in the prefix tree is an idea but the
+	// implementation used does not (obviously) support updating a node's metadata
+	consideredSecrets := map[SecretName]struct{}{}
+	managedSecrets := []MaskedSecret{}
+
+	for _, secretName := range secretsPrefixTree.Keys() {
+		if _, ok := consideredSecrets[secretName]; ok {
+			continue
+		}
+		consideredSecrets[secretName] = struct{}{}
+
+		secret := MaskedSecret{Name: secretName}
+		matched := secretsPrefixTree.PrefixSearch(secret.HashedNamePrefix())
+		if len(matched) > 0 {
+			managedSecrets = append(managedSecrets, secret)
+			for _, match := range matched {
+				consideredSecrets[match] = struct{}{}
+			}
+		}
+	}
+
+	return managedSecrets
 }
