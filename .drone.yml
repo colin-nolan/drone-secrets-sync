@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-name: default
+name: test
 platform:
   arch: amd64
 
@@ -8,4 +8,4 @@ steps:
   - name: lint
     image: golangci/golangci-lint
     commands:
-      - golangci-lint run -v --timeout 5m0s
+      - golangci-lint run --timeout 5m0s

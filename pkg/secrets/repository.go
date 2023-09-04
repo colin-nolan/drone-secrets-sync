@@ -85,7 +85,7 @@ func (manager RepositorySecretManager) SyncSecret(secret Secret, dryRun bool) (u
 }
 
 func (manager RepositorySecretManager) SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error) {
-	var updatedSecretNames []SecretName = make([]string, 0)
+	var updatedSecretNames = make([]SecretName, 0)
 	for _, secret := range secrets {
 		updated, err := manager.syncSecret(secret, manager.getSecretsPrefixTree(), dryRun)
 		if updated {

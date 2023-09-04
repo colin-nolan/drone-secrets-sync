@@ -51,8 +51,6 @@ func syncSecrets() {
 		log.Fatal(err)
 	}
 	fmt.Println(string(data))
-
-	return
 }
 
 func readSecretsFromStdin() []secrets.Secret {
@@ -62,7 +60,10 @@ func readSecretsFromStdin() []secrets.Secret {
 	}
 
 	var secretValueMap map[string]interface{}
-	json.Unmarshal([]byte(inputData), &secretValueMap)
+	err = json.Unmarshal([]byte(inputData), &secretValueMap)
+	if err != nil {
+		log.Fatal("Error parsing JSON from stdin:", err)
+	}
 
 	var secretValuePairs []secrets.Secret
 	for key, value := range secretValueMap {
