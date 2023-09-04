@@ -7,13 +7,30 @@ import (
 	"github.com/drone/drone-go/drone"
 )
 
+// An interface for managing secrets in an external source.
 type SecretManager interface {
+	// Gets secrets - both "synced" (those with a matching hash secret) and those without
 	ListSecrets() []MaskedSecret
+
+	// Gets secrets that are "synced" (those with a matching hash secret)
 	ListSyncedSecrets() []MaskedSecret
+
+	// Synchronizes a single secret.
+	//
+	// `updated` is set to `true` if the secret is updated.
+	//
+	// Does not make actual changes if `dryRun` is `true`.
 	SyncSecret(secret Secret, dryRun bool) (updated bool, err error)
+
+	// Synchronizes a list of secrets
+	//
+	// `updated` is populated with the names of the secrets that were updated.
+	//
+	// Does not make actual changes if `dryRun` is `true`.
 	SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error)
 }
 
+// Secret manager for a Drone CI repository.
 type RepositorySecretManager struct {
 	Client drone.Client
 	Owner  string
@@ -37,7 +54,30 @@ func (manager RepositorySecretManager) ListSecrets() []MaskedSecret {
 }
 
 func (manager RepositorySecretManager) ListSyncedSecrets() []MaskedSecret {
-	return GetManagedSecrets(manager.getSecretsPrefixTree())
+	secretsPrefixTree := manager.getSecretsPrefixTree()
+
+	// Storing whether a secret has been considered as metadata on nodes in the prefix tree is an idea but the
+	// implementation used does not (obviously) support updating a node's metadata
+	consideredSecrets := map[SecretName]struct{}{}
+	managedSecrets := []MaskedSecret{}
+
+	for _, secretName := range secretsPrefixTree.Keys() {
+		if _, ok := consideredSecrets[secretName]; ok {
+			continue
+		}
+		consideredSecrets[secretName] = struct{}{}
+
+		secret := MaskedSecret{Name: secretName}
+		matched := secretsPrefixTree.PrefixSearch(secret.HashedNamePrefix())
+		if len(matched) > 0 {
+			managedSecrets = append(managedSecrets, secret)
+			for _, match := range matched {
+				consideredSecrets[match] = struct{}{}
+			}
+		}
+	}
+
+	return managedSecrets
 }
 
 func (manager RepositorySecretManager) SyncSecret(secret Secret, dryRun bool) (updated bool, err error) {
@@ -115,29 +155,4 @@ func (manager RepositorySecretManager) syncSecret(secret Secret, secrets *trie.T
 	}
 
 	return true, nil
-}
-
-func GetManagedSecrets(secretsPrefixTree *trie.Trie) []MaskedSecret {
-	// Storing whether a secret has been considered as metadata on nodes in the prefix tree is an idea but the
-	// implementation used does not (obviously) support updating a node's metadata
-	consideredSecrets := map[SecretName]struct{}{}
-	managedSecrets := []MaskedSecret{}
-
-	for _, secretName := range secretsPrefixTree.Keys() {
-		if _, ok := consideredSecrets[secretName]; ok {
-			continue
-		}
-		consideredSecrets[secretName] = struct{}{}
-
-		secret := MaskedSecret{Name: secretName}
-		matched := secretsPrefixTree.PrefixSearch(secret.HashedNamePrefix())
-		if len(matched) > 0 {
-			managedSecrets = append(managedSecrets, secret)
-			for _, match := range matched {
-				consideredSecrets[match] = struct{}{}
-			}
-		}
-	}
-
-	return managedSecrets
 }
