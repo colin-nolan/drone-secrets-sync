@@ -3,8 +3,17 @@ module github.com/colin-nolan/drone-secrets-manager
 go 1.21.0
 
 require (
+	github.com/alexflint/go-arg v1.4.3
 	github.com/drone/drone-go v1.7.1
+	github.com/rs/zerolog v1.30.0
 	golang.org/x/oauth2 v0.11.0
+)
+
+require (
+	github.com/alexflint/go-scalar v1.1.0 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 )
 
 require (

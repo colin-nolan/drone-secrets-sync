@@ -1,10 +1,10 @@
 package secrets
 
 import (
-	"log"
-
 	"github.com/derekparker/trie"
 	"github.com/drone/drone-go/drone"
+
+	"github.com/rs/zerolog/log"
 )
 
 // An interface for managing secrets in an external source.
@@ -40,7 +40,7 @@ type RepositorySecretManager struct {
 func (manager RepositorySecretManager) ListSecrets() []MaskedSecret {
 	secretEntries, err := manager.Client.SecretList(manager.Owner, manager.Name)
 	if err != nil {
-		log.Fatalf("Error getting secrets for repository %s/%s: %s", manager.Owner, manager.Name, err)
+		log.Fatal().Err(err).Msgf("Error getting secrets for repository %s/%s", manager.Owner, manager.Name)
 	}
 
 	var secrets []MaskedSecret
