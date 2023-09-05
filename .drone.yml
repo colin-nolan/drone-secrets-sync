@@ -1,6 +1,7 @@
 ---
+
 kind: pipeline
-name: test
+name: lint
 platform:
   arch: amd64
 
@@ -8,4 +9,32 @@ steps:
   - name: lint
     image: golangci/golangci-lint
     commands:
-      - golangci-lint run --timeout 5m0s
+      - make lint
+
+---
+
+kind: pipeline
+name: test
+platform:
+  arch: amd64
+
+steps:
+  - name: test
+    image: golang:alpine
+    commands:
+      - apk add make
+      - make test
+
+---
+
+kind: pipeline
+name: build
+platform:
+  arch: amd64
+
+steps:
+  - name: build
+    image: golang:alpine
+    commands:
+      - apk add make
+      - make build

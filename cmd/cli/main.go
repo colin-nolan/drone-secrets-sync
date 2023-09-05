@@ -15,15 +15,19 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
+var version = "unknown"
+
+type cliArgs struct {
+	Repository string `arg:"positional,required" help:"repository to sync secrets for, e.g. octocat/hello-world"`
+	// Wr         io.Writer `arg:"-"`
+}
+
+func (cliArgs) Version() string {
+	return version
+}
+
 func main() {
-	// TODO: CLI function
-	var args struct {
-		Repository string `arg:"positional"`
-		// Log      string    `arg:"positional,required"`
-		// Debug    bool      `arg:"-d" help:"turn on debug mode"`
-		// RealMode bool      `arg:"--real"`
-		Wr io.Writer `arg:"-"`
-	}
+	var args cliArgs
 	arg.MustParse(&args)
 
 	syncSecrets(args.Repository)
