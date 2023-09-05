@@ -3,7 +3,7 @@ BINARY_OUTPUT_LOCATION = bin/$(BINARY_NAME)
 VERSION ?= unset
 ENTRYPOINT = cmd/cli/main.go
 
-all: deps build
+all: build
 
 build: 
 	go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BINARY_OUTPUT_LOCATION) $(ENTRYPOINT)
@@ -21,7 +21,4 @@ lint:
 test:
 	go test -v ./...
 
-deps:
-	go get -d -v ./...
-
-.PHONY: all build clean test deps build-docker
+.PHONY: all build clean test build-docker
