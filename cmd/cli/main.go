@@ -15,6 +15,7 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
+// To be set on compilation
 var version = "unknown"
 
 type cliArgs struct {
@@ -30,13 +31,15 @@ func main() {
 	var args cliArgs
 	arg.MustParse(&args)
 
+	// TODO: configure log level
+
 	syncSecrets(args.Repository)
 }
 
 func syncSecrets(repository string) {
 	credential, err := client.GetCredentialFromEnv()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("Error getting credentials from environment")
 	}
 	client := client.CreateClient(credential)
 
@@ -50,12 +53,12 @@ func syncSecrets(repository string) {
 	secrets := readSecretsFromStdin()
 	synced, err := repositorySecretManager.SyncSecrets(secrets, false)
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("Error syncing secrets")
 	}
 
 	data, err := json.Marshal(synced)
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("Error marshalling synced secrets output")
 	}
 	fmt.Println(string(data))
 }

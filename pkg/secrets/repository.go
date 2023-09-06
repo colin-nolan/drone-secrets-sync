@@ -9,32 +9,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// An interface for managing secrets in an external source.
-type SecretManager interface {
-	// Gets secrets - both "synced" (those with a matching hash secret) and those without
-	ListSecrets() ([]MaskedSecret, error)
-
-	// Gets secrets that are "synced" (those with a matching hash secret)
-	ListSyncedSecrets() ([]MaskedSecret, error)
-
-	// Synchronizes a single secret.
-	//
-	// `updated` is set to `true` if the secret is updated.
-	//
-	// Does not make actual changes if `dryRun` is `true`.
-	SyncSecret(secret Secret, dryRun bool) (updated bool, err error)
-
-	// Synchronizes a list of secrets
-	//
-	// `updated` is populated with the names of the secrets that were updated.
-	//
-	// Does not make actual changes if `dryRun` is `true`.
-	SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error)
+// Create interface that is a subset of `drone.Client` to make testing simpler
+type MinimalClient interface {
+	SecretList(owner string, name string) ([]*drone.Secret, error)
+	SecretCreate(owner string, name string, secret *drone.Secret) (*drone.Secret, error)
+	SecretDelete(owner string, name string, secret string) error
 }
 
-// Secret manager for a Drone CI repository.
+// Secret manager for a Drone CI repository. Implemented against `SecretManager` interface.
 type RepositorySecretManager struct {
-	Client drone.Client
+	Client MinimalClient
 	Owner  string
 	Name   string
 }
@@ -134,6 +118,7 @@ func (manager RepositorySecretManager) syncSecret(secret Secret, secrets *trie.T
 		}
 
 		if !dryRun {
+			// TODO: change to use UpdateSecret
 			// Remove old secret (required to avoid unique constraint error)
 			log.Info().Msgf("Deleting old secret: %s", secret.Name)
 			err = manager.Client.SecretDelete(manager.Owner, manager.Name, secret.Name)
