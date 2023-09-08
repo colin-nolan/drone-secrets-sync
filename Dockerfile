@@ -16,6 +16,6 @@ RUN make build
 
 FROM alpine
 
-COPY --from=builder /build/bin/drone-secrets-manager /usr/local/bin/drone-secrets-manager
+COPY --from=builder /build/bin/drone-secrets-syncc /usr/local/bin/drone-secrets-sync
 
-ENTRYPOINT ["/usr/local/bin/drone-secrets-manager"]
+ENTRYPOINT ["/usr/local/bin/drone-secrets-sync"]

@@ -5,73 +5,43 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/colin-nolan/drone-secrets-manager/pkg/client"
-	"github.com/colin-nolan/drone-secrets-manager/pkg/secrets"
-
-	"github.com/alexflint/go-arg"
+	"github.com/colin-nolan/drone-secrets-sync/pkg/client"
+	"github.com/colin-nolan/drone-secrets-sync/pkg/secrets"
 )
 
-// To be set on compilation
-var version = "unknown"
-
-type cliArgs struct {
-	Repository string `arg:"positional,required" help:"repository to sync secrets for, e.g. octocat/hello-world"`
-	// Wr         io.Writer `arg:"-"`
-}
-
-func (cliArgs) Version() string {
-	return version
-}
-
 func main() {
-	var args cliArgs
-	arg.MustParse(&args)
+	configuration := ReadCliArgs()
+	secrets := readSecrets()
+	credential := readCredential()
 
-	// TODO: configure log level
+	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
 
-	syncSecrets(args.Repository)
+	updatedSecrets := syncSecrets(configuration.RepositoryOwner(), configuration.RepositoryName(), secrets, credential)
+	output(updatedSecrets)
 }
 
-func syncSecrets(repository string) {
-	credential, err := client.GetCredentialFromEnv()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting credentials from environment")
-	}
+func syncSecrets(repositoryOwner string, repositoryName string, secretsToSync []secrets.Secret, credential client.Credential) []string {
 	client := client.CreateClient(credential)
 
-	repositoryOwner, repositoryName := parseRepository(repository)
 	repositorySecretManager := secrets.RepositorySecretManager{
 		Client: client,
 		Owner:  repositoryOwner,
 		Name:   repositoryName,
 	}
 
-	secrets := readSecretsFromStdin()
-	synced, err := repositorySecretManager.SyncSecrets(secrets, false)
+	updatedSecrets, err := repositorySecretManager.SyncSecrets(secretsToSync, false)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error syncing secrets")
 	}
 
-	data, err := json.Marshal(synced)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error marshalling synced secrets output")
-	}
-	fmt.Println(string(data))
+	return updatedSecrets
 }
 
-func parseRepository(repository string) (owner string, name string) {
-	repositorySplit := strings.Split(repository, "/")
-	if len(repositorySplit) != 2 {
-		log.Fatal().Msg("Repository must be in the format <owner>/<name>")
-	}
-	return repositorySplit[0], repositorySplit[1]
-}
-
-func readSecretsFromStdin() []secrets.Secret {
+func readSecrets() []secrets.Secret {
 	inputData, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading from stdin")
@@ -88,4 +58,20 @@ func readSecretsFromStdin() []secrets.Secret {
 		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string)))
 	}
 	return secretValuePairs
+}
+
+func readCredential() client.Credential {
+	credential, err := client.GetCredentialFromEnv()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting credentials from environment")
+	}
+	return credential
+}
+
+func output(updatedSecrets []string) {
+	data, err := json.Marshal(updatedSecrets)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error marshalling updated secrets for output")
+	}
+	fmt.Println(string(data))
 }

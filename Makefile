@@ -1,7 +1,7 @@
 BINARY_NAME = drone-secrets-manager
 BINARY_OUTPUT_LOCATION = bin/$(BINARY_NAME)
 VERSION ?= unset
-ENTRYPOINT = cmd/cli/main.go
+ENTRYPOINT = cmd/cli/*.go
 
 all: build
 

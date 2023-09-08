@@ -1,4 +1,4 @@
-module github.com/colin-nolan/drone-secrets-manager
+module github.com/colin-nolan/drone-secrets-sync
 
 go 1.21.0
 
