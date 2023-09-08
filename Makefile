@@ -1,4 +1,4 @@
-BINARY_NAME = drone-secrets-manager
+BINARY_NAME = drone-secrets-sync
 BINARY_OUTPUT_LOCATION = bin/$(BINARY_NAME)
 VERSION ?= unset
 ENTRYPOINT = cmd/cli/*.go
@@ -16,7 +16,7 @@ clean:
 	rm -f $(BINARY_OUTPUT_LOCATION)
 
 lint:
-	golangci-lint run --timeout 5m0s
+	golangci-lint run --timeout 15m0s
 
 test:
 	go test -v ./...

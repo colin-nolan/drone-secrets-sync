@@ -15,7 +15,7 @@ import (
 
 func main() {
 	configuration := ReadCliArgs()
-	secrets := readSecrets()
+	secrets := readSecrets(configuration.SourceFile)
 	credential := readCredential()
 
 	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
@@ -41,8 +41,14 @@ func syncSecrets(repositoryOwner string, repositoryName string, secretsToSync []
 	return updatedSecrets
 }
 
-func readSecrets() []secrets.Secret {
-	inputData, err := io.ReadAll(os.Stdin)
+func readSecrets(sourceFile string) []secrets.Secret {
+	var inputData []byte
+	var err error
+	if sourceFile == "-" {
+		inputData, err = io.ReadAll(os.Stdin)
+	} else {
+		inputData, err = os.ReadFile(sourceFile)
+	}
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading from stdin")
 	}

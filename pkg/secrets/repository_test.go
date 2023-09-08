@@ -137,7 +137,6 @@ func TestListSyncedSecrets(t *testing.T) {
 	})
 
 	t.Run("no-synced", func(t *testing.T) {
-
 		repository, client := createRepositorySecretManager(exampleOwner, exampleName)
 		client.On("SecretList", exampleOwner, exampleName).Return(
 			[]*drone.Secret{
