@@ -22,4 +22,3 @@ type SecretManager interface {
 	// Does not make actual changes if `dryRun` is `true`.
 	SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error)
 }
-
