@@ -13,6 +13,7 @@ import (
 type MinimalClient interface {
 	SecretList(owner string, name string) ([]*drone.Secret, error)
 	SecretCreate(owner string, name string, secret *drone.Secret) (*drone.Secret, error)
+	SecretUpdate(owner string, name string, secret *drone.Secret) (*drone.Secret, error)
 	SecretDelete(owner string, name string, secret string) error
 }
 
@@ -79,6 +80,9 @@ func (manager RepositorySecretManager) SyncSecret(secret Secret, dryRun bool) (u
 }
 
 func (manager RepositorySecretManager) SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error) {
+	if len(secrets) == 0 {
+		return []SecretName{}, nil
+	}
 	secretsPrefixTree, err := manager.getSecretsPrefixTree()
 	if err != nil {
 		return nil, err
@@ -110,21 +114,15 @@ func (manager RepositorySecretManager) getSecretsPrefixTree() (*trie.Trie, error
 	return secretsPrefixTree, nil
 }
 
-func (manager RepositorySecretManager) syncSecret(secret Secret, secrets *trie.Trie, dryRun bool) (updated bool, err error) {
-	if node, _ := secrets.Find(secret.Name); node != nil {
-		// Check if the secret value is already up to date based on the corresponding hash secret
-		if node, _ := secrets.Find(secret.HashedName()); node != nil {
-			return false, nil
-		}
+func (manager RepositorySecretManager) syncSecret(secret Secret, existingSecrets *trie.Trie, dryRun bool) (updated bool, err error) {
+	secretIsNew := true
+	if node, _ := existingSecrets.Find(secret.Name); node != nil {
+		log.Debug().Msg("Secret already exists")
+		secretIsNew = false
 
-		if !dryRun {
-			// TODO: change to use UpdateSecret
-			// Remove old secret (required to avoid unique constraint error)
-			log.Info().Msgf("Deleting old secret: %s", secret.Name)
-			err = manager.Client.SecretDelete(manager.Owner, manager.Name, secret.Name)
-			if err != nil {
-				return true, err
-			}
+		// Check if the secret value is already up to date based on the corresponding hash secret
+		if node, _ := existingSecrets.Find(secret.HashedName()); node != nil {
+			return false, nil
 		}
 	}
 
@@ -133,7 +131,7 @@ func (manager RepositorySecretManager) syncSecret(secret Secret, secrets *trie.T
 	}
 
 	// Remove old secret hashes
-	matched := secrets.PrefixSearch(secret.HashedNamePrefix())
+	matched := existingSecrets.PrefixSearch(secret.HashedNamePrefix())
 	for _, match := range matched {
 		log.Info().Msgf("Deleting old hash secret: %s", secret.Name)
 		err = manager.Client.SecretDelete(manager.Owner, manager.Name, match)
@@ -142,24 +140,35 @@ func (manager RepositorySecretManager) syncSecret(secret Secret, secrets *trie.T
 		}
 	}
 
-	// Add new secret and secret hash
-	for _, secretEntry := range []drone.Secret{
-		{
-			Namespace: manager.Owner,
-			Name:      secret.Name,
-			Data:      secret.Value,
-		},
-		{
-			Namespace: manager.Owner,
-			Name:      secret.HashedName(),
-			Data:      "1", // Secret must has a non-empty value
-		}} {
-		log.Info().Msgf("Adding secret: %s", secretEntry.Name)
-		_, err = manager.Client.SecretCreate(manager.Owner, manager.Name, &secretEntry)
+	// Adding/Updating secret
+	droneSecret := drone.Secret{
+		Namespace: manager.Owner,
+		Name:      secret.Name,
+		Data:      secret.Value,
+	}
+	if secretIsNew {
+		log.Info().Msgf("Adding secret: %s", secret.Name)
+		_, err = manager.Client.SecretCreate(manager.Owner, manager.Name, &droneSecret)
 		if err != nil {
 			return true, err
 		}
+	} else {
+		log.Info().Msgf("Updating secret: %s", secret.Name)
+		_, err = manager.Client.SecretUpdate(manager.Owner, manager.Name, &droneSecret)
+		if err != nil {
+			return true, err
+		}
+	}
 
+	// Adding secret hash
+	log.Info().Msgf("Adding secret hash: %s", secret.HashedName())
+	_, err = manager.Client.SecretCreate(manager.Owner, manager.Name, &drone.Secret{
+		Namespace: manager.Owner,
+		Name:      secret.HashedName(),
+		Data:      "1", // Secret must has a non-empty value
+	})
+	if err != nil {
+		return true, err
 	}
 
 	return true, nil

@@ -23,8 +23,3 @@ type SecretManager interface {
 	SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error)
 }
 
-type Client interface {
-	SecretList(owner string, name string) ([]*Secret, error)
-	SecretCreate(owner string, name string, secret *Secret) (*Secret, error)
-	SecretDelete(owner string, name string, secretName string) error
-}

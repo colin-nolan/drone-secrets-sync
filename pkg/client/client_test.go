@@ -13,32 +13,36 @@ const (
 )
 
 func TestGetCredentialFromEnv(t *testing.T) {
-	os.Setenv(DroneServerVariable, exampleServer)
-	os.Setenv(DroneTokenVariable, exampleToken)
-	credential, err := GetCredentialFromEnv()
-	assert.Nil(t, err)
-	assert.Equal(t, exampleServer, credential.Server)
-	assert.Equal(t, exampleToken, credential.Token)
-}
+	t.Run("set", func(t *testing.T) {
+		os.Setenv(DroneServerVariable, exampleServer)
+		os.Setenv(DroneTokenVariable, exampleToken)
+		credential, err := GetCredentialFromEnv()
+		assert.Nil(t, err)
+		assert.Equal(t, exampleServer, credential.Server)
+		assert.Equal(t, exampleToken, credential.Token)
+	})
 
-func TestGetCredentialFromEnvServerNotSet(t *testing.T) {
-	os.Unsetenv(DroneServerVariable)
-	os.Setenv(DroneTokenVariable, exampleToken)
-	_, err := GetCredentialFromEnv()
-	assert.NotNil(t, err)
-}
+	t.Run("server-not-set", func(t *testing.T) {
+		os.Unsetenv(DroneServerVariable)
+		os.Setenv(DroneTokenVariable, exampleToken)
+		_, err := GetCredentialFromEnv()
+		assert.NotNil(t, err)
+	})
 
-func TestGetCredentialFromEnvTokenNotSet(t *testing.T) {
-	os.Unsetenv(DroneTokenVariable)
-	os.Setenv(DroneServerVariable, exampleServer)
-	_, err := GetCredentialFromEnv()
-	assert.NotNil(t, err)
+	t.Run("token-not-set", func(t *testing.T) {
+		os.Unsetenv(DroneTokenVariable)
+		os.Setenv(DroneServerVariable, exampleServer)
+		_, err := GetCredentialFromEnv()
+		assert.NotNil(t, err)
+	})
 }
 
 func TestCreateClient(t *testing.T) {
-	client := CreateClient(Credential{
-		Server: exampleServer,
-		Token:  exampleToken,
+	t.Run("valid", func(t *testing.T) {
+		client := CreateClient(Credential{
+			Server: exampleServer,
+			Token:  exampleToken,
+		})
+		assert.NotNil(t, client)
 	})
-	assert.NotNil(t, client)
 }

@@ -11,7 +11,6 @@ RUN go mod download
 COPY Makefile .
 COPY pkg pkg
 COPY cmd cmd
-RUN ls && sleep 23
 RUN make build
 
 
