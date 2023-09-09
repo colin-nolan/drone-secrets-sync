@@ -4,6 +4,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"time"
+
+	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/argon2"
+)
+
+// TODO: allow these to be configured by the user
+const (
+	hashIterations  = 32
+	hashMemory      = 64 * 1024
+	hashParallelism = 2
+	hashLength      = 16
 )
 
 type SecretName = string
@@ -22,16 +34,22 @@ func (secret MaskedSecret) HashedNamePrefix() string {
 // A secret where the value is known
 type Secret struct {
 	MaskedSecret
-	Value string
+	Value            string
+	CachedHashedName string
 }
 
 // Gets the name of the corresponding "hash" secret
-func (secret Secret) HashedName() string {
-	// Hashing secret value with the secret name as a salt
-	hasher := sha256.Sum256([]byte(secret.Name + secret.Value))
-	// Using hex to attain representations using only a-z,0-9
-	hash := hex.EncodeToString(hasher[:])
-	return fmt.Sprintf("%s%s", secret.HashedNamePrefix(), hash)
+func (secret *Secret) HashedName() string {
+	if secret.CachedHashedName == "" {
+		// Salt must be derivable from only the information available, which is the secret name
+		salt := sha256.Sum256([]byte(secret.Name))
+		start := time.Now()
+		// Creating hash using expensive argon2 algorithm to reduce the effectiveness of brute force attacks
+		key := argon2.IDKey([]byte(secret.Value), salt[:], hashIterations, hashMemory, hashParallelism, hashLength)
+		log.Debug().Msgf("Hash created in %s", time.Since(start))
+		secret.CachedHashedName = hex.EncodeToString(key)
+	}
+	return fmt.Sprintf("%s%s", secret.HashedNamePrefix(), secret.CachedHashedName)
 }
 
 func NewSecret(name SecretName, value string) Secret {

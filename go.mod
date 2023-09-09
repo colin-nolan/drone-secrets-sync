@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	github.com/drone/drone-go v1.7.1
+	golang.org/x/crypto v0.13.0
 	golang.org/x/oauth2 v0.11.0
 )
 
@@ -14,7 +15,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

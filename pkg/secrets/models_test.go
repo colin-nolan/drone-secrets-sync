@@ -21,15 +21,18 @@ func TestHashedNamePrefix(t *testing.T) {
 }
 
 func TestHashedName(t *testing.T) {
-	t.Run("type-check", func(t *testing.T) {
-		var hashedName interface{} = exampleSecret.HashedName()
+	t.Run("calculates", func(t *testing.T) {
+		// Testing multiple times as there are different code paths due to caching
+		for i := 0; i < 3; i++ {
+			var hashedName interface{} = exampleSecret.HashedName()
 
-		if _, ok := hashedName.(string); !ok {
-			t.Errorf("HashedNamePrefix() should return a string")
+			if _, ok := hashedName.(string); !ok {
+				t.Errorf("HashedNamePrefix() should return a string")
+			}
 		}
 	})
 
-	t.Run("has-prefix", func(t *testing.T) {
+	t.Run("contains-prefix", func(t *testing.T) {
 		hashedName := exampleSecret.HashedName()
 		hashedNamePrefix := exampleSecret.HashedNamePrefix()
 

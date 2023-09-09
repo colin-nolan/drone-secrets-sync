@@ -38,7 +38,7 @@ Pull Request Read:  false
 Pull Request Write: false
 ```
 
-Be aware that this makes it possible for an attacker to brute force a secret's value offline.
+Be aware that exposing hashes makes it possible for an attacker that has gained access to the secrets to brute force their values offline. Hashes are generated using [Argon2](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf) to make attacks more difficult.
 
 ## Installation
 
