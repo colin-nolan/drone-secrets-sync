@@ -11,11 +11,13 @@ RUN go mod download
 COPY Makefile .
 COPY pkg pkg
 COPY cmd cmd
-RUN make build
+
+ARG VERSION=unset
+RUN make build VERSION="${VERSION}"
 
 
 FROM alpine
 
-COPY --from=builder /build/bin/drone-secrets-syncc /usr/local/bin/drone-secrets-sync
+COPY --from=builder /build/bin/drone-secrets-sync /usr/local/bin/drone-secrets-sync
 
 ENTRYPOINT ["/usr/local/bin/drone-secrets-sync"]

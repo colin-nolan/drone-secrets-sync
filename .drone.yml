@@ -11,6 +11,13 @@ steps:
     commands:
       - make lint
 
+  - name: lint-markdown
+    image: python:3-alpine
+    commands:
+      - apk add make
+      - pip install mdformat-gfm
+      - make lint-markdown
+
 ---
 
 kind: pipeline
