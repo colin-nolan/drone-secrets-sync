@@ -8,7 +8,8 @@
 # Synchronise multiple repository secrets from JSON map on stdin
 echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
     | drone-secrets-sync repository octocat/hello-world
-
+```
+```shell
 # Synchronise repository secrets from JSON file
 drone-secrets-sync repository octocat/hello-world secrets.json
 ```
