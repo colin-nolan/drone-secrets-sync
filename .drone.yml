@@ -4,10 +4,10 @@ kind: pipeline
 name: lint
 
 steps:
-  - name: lint
+  - name: lint-code
     image: golangci/golangci-lint
     commands:
-      - make lint
+      - make lint-code
 
   - name: lint-markdown
     image: python:3-alpine
@@ -27,6 +27,12 @@ steps:
     commands:
       - apk add make
       - make test
+
+  - name: publish-coverage
+    image: robertstettner/drone-codecov
+    settings:
+      token: 
+        from_secret: CODECOV_TOKEN
 
 ---
 
