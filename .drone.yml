@@ -12,7 +12,7 @@ steps:
   - name: lint-markdown
     image: python:3-alpine
     commands:
-      - apk add make
+      - apk add --update-cache make
       - pip install mdformat-gfm
       - make lint-markdown
 
@@ -25,7 +25,7 @@ steps:
   - name: test
     image: golang:alpine
     commands:
-      - apk add make
+      - apk add --update-cache gcc libc-dev make
       - make test
 
   - name: publish-coverage
@@ -43,5 +43,5 @@ steps:
   - name: build
     image: golang:alpine
     commands:
-      - apk add make
+      - apk add --update-cache make
       - make build
