@@ -2,7 +2,6 @@
 
 kind: pipeline
 name: lint
-
 steps:
   - name: lint-code
     image: golangci/golangci-lint
@@ -22,7 +21,6 @@ steps:
 
 kind: pipeline
 name: test
-
 steps:
   - name: test
     image: golang:alpine
@@ -34,16 +32,24 @@ steps:
     image: robertstettner/drone-codecov
     settings:
       token: 
-        from_secret: CODECOV_TOKEN
+        from_secret: codecov_token
 
 ---
 
 kind: pipeline
 name: build
-
 steps:
   - name: build
     image: golang:alpine
     commands:
       - apk add --update-cache make
       - make build
+
+  - name: publish
+    image: plugins/github-release:latest
+    settings:
+      api_key:
+        from_secret: github_release_token
+      files: bin/*
+    when:
+      event: tag

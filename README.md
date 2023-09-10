@@ -142,6 +142,20 @@ To run a Drone CI step manually:
 drone exec -pipeline=lint
 ```
 
+### Clear Secrets
+
+When testing against a Drone CI installation, to clear all secrets on a repository:
+
+```shell
+repository=colin-nolan/drone-testing
+drone secret ls --format '{{ .Name }}' "${repository}" \
+    | xargs -I {} drone secret rm --name {} "${repository}"
+```
+
+Requires:
+
+- [drone-cli](https://docs.drone.io/quickstart/cli/)
+
 ## Alternatives
 
 - [drone-secret-sync](https://github.com/appleboy/drone-secret-sync) can synchronise secrets across multiple orgs/repositories. Not idempotent - will update all secrets every time.
