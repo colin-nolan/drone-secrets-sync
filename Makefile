@@ -24,6 +24,7 @@ uninstall:
 clean:
 	go clean
 	rm -f $(BINARY_OUTPUT_LOCATION)
+	rm -f coverage.out output.log
 
 lint: lint-code lint-markdown
 
@@ -34,6 +35,7 @@ lint-markdown:
 	mdformat --check *.md
 
 format: format-code format-markdown
+fmt: format
 
 format-code:
 	go fmt ./...
