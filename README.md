@@ -142,6 +142,10 @@ To run a Drone CI step manually:
 drone exec -pipeline=lint
 ```
 
+## Alternatives
+- [drone-secret-sync](https://github.com/appleboy/drone-secret-sync) can synchronise secrets across multiple orgs/repositories. Not idempotent - will update all secrets every time.
+
+
 ## Legal
 
 GPL v3 (contact for other licencing). Copyright 2023 Colin Nolan.
