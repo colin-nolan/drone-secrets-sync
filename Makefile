@@ -42,6 +42,6 @@ format-markdown:
 	mdformat *.md
 
 test:
-	go test -v ./...
+	CGO_ENABLED=1 go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
 
 .PHONY: all build clean test build-docker
