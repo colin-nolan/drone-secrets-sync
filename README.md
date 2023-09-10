@@ -97,19 +97,19 @@ make build
 To run after building:
 
 ```shell
-./bin/drone-secrets-sync --help
+./build/drone-secrets-sync --help
 ```
 
 #### Docker Image
 
 ```shell
-image="$(make build-docker)"
+docker build -t colin-nolan/drone-secret:$(make version) .
 ```
 
 To run after building:
 
 ```shell
-docker run --rm --pull never -e DRONE_SERVER -e DRONE_TOKEN "${image}" --help
+docker run --rm --pull never -e DRONE_SERVER -e DRONE_TOKEN "colin-nolan/drone-secret:$(make version)" --help
 ```
 
 ### Test

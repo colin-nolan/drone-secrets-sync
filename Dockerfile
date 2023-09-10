@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM docker.io/golang:alpine as builder
 
 RUN apk add --no-cache make
 
@@ -15,9 +15,11 @@ COPY cmd cmd
 ARG VERSION=unset
 RUN make build VERSION="${VERSION}"
 
+RUN cp "build/release/${VERSION}/drone-secrets-sync" /drone-secrets-sync
 
-FROM alpine
 
-COPY --from=builder /build/bin/drone-secrets-sync /usr/local/bin/drone-secrets-sync
+FROM docker.io/alpine
+
+COPY --from=builder /drone-secrets-sync /usr/local/bin/drone-secrets-sync
 
 ENTRYPOINT ["/usr/local/bin/drone-secrets-sync"]

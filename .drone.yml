@@ -39,17 +39,31 @@ steps:
 kind: pipeline
 name: build
 steps:
-  - name: build
+  - name: build-binary
     image: golang:alpine
     commands:
-      - apk add --update-cache make
+      - apk add --update-cache git make
+      - git config --global --add safe.directory "$(pwd)"
       - make build
 
-  - name: publish
-    image: plugins/github-release:latest
-    settings:
-      api_key:
-        from_secret: github_release_token
-      files: bin/*
-    when:
-      event: tag
+  - name: build-container
+    # Unfortunately, we cannot use the official kaniko image because Drone CI converts commands
+    # into a shell script and the kaniko image does not have a shell (https://docs.drone.io/pipeline/docker/syntax/steps/#commands)
+    image: golang:alpine
+    commands:
+      - apk add --update-cache bash git make
+      # Build kaniko
+      - if [[ ! -d build/thrid-party/kaniko ]]; then git clone --depth=1 --branch=main https://github.com/GoogleContainerTools/kaniko.git build/thrid-party/kaniko; fi
+      - cd build/thrid-party/kaniko && make out/executor && cd -
+      # Build container
+      - mkdir -p build
+      - git config --global --add safe.directory "$(pwd)"
+      - make build-container KANIKO_EXECUTOR=build/thrid-party/kaniko/out/executor
+
+  - name: link-latest
+    image: alpine
+    commands:
+      - apk add --update-cache git make
+      - git config --global --add safe.directory "$${PWD}"
+      - version="$(make version)"; cd build/release && ln -f -s "$${version}" latest && cd -
+      - ls -altr build/release
