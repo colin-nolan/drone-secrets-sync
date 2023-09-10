@@ -8,6 +8,7 @@ steps:
     image: golangci/golangci-lint
     commands:
       - make lint-code
+    depends_on: []
 
   - name: lint-markdown
     image: python:3-alpine
@@ -15,6 +16,7 @@ steps:
       - apk add --update-cache make
       - pip install mdformat-gfm
       - make lint-markdown
+    depends_on: []
 
 ---
 
