@@ -9,6 +9,7 @@
 echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
     | drone-secrets-sync repository octocat/hello-world
 ```
+
 ```shell
 # Synchronise repository secrets from JSON file
 drone-secrets-sync repository octocat/hello-world secrets.json
@@ -43,7 +44,7 @@ Be aware that exposing hashes makes it possible for an attacker that has gained 
 
 ## Installation
 
-```
+```shell
 make install
 ```
 
@@ -84,7 +85,7 @@ Global options:
 
 ## Development
 
-### Build
+### Build and Run
 
 #### Executable
 
@@ -92,18 +93,22 @@ Global options:
 make build
 ```
 
-#### Docker Image
-
-```
-make build-docker
-```
-
-### Run
-
-After building:
+To run after building:
 
 ```shell
-./bin/drone-secrets-sync
+./bin/drone-secrets-sync --help
+```
+
+#### Docker Image
+
+```shell
+image="$(make build-docker)"
+```
+
+To run after building:
+
+```shell
+docker run --rm --pull never -e DRONE_SERVER -e DRONE_TOKEN "${image}" --help
 ```
 
 ### Test
@@ -114,18 +119,19 @@ make test
 
 ### Linting
 
-#### Code
-
 ```shell
 make lint
 ```
 
-Requires [golangci-lint](https://github.com/golangci/golangci-lint) to be installed.
+Requires:
 
-#### Markdown
+- [golangci-lint](https://github.com/golangci/golangci-lint)
+- [mdformat-gfm](https://github.com/executablebooks/mdformat)
+
+#### Apply Format
 
 ```shell
-make lint-markdown
+make format
 ```
 
 #### CI
@@ -135,8 +141,6 @@ To run a Drone CI step manually:
 ```shell
 drone exec -pipeline=lint
 ```
-
-Requires [mdformat-gfm](https://github.com/executablebooks/mdformat) to be installed.
 
 ## Legal
 
