@@ -33,6 +33,8 @@ steps:
     settings:
       token: 
         from_secret: codecov_token
+    depends_on:
+      - test
 
 ---
 
@@ -43,7 +45,7 @@ steps:
     image: golang:alpine
     commands:
       - apk add --update-cache git make
-      - git config --global --add safe.directory "$(pwd)"
+      - git config --global --add safe.directory "$${PWD}"
       - make build
 
   - name: build-container
@@ -57,7 +59,7 @@ steps:
       - cd build/thrid-party/kaniko && make out/executor && cd -
       # Build container
       - mkdir -p build
-      - git config --global --add safe.directory "$(pwd)"
+      - git config --global --add safe.directory "$${PWD}"
       - make build-container KANIKO_EXECUTOR=build/thrid-party/kaniko/out/executor
 
   - name: link-latest
@@ -66,4 +68,12 @@ steps:
       - apk add --update-cache git make
       - git config --global --add safe.directory "$${PWD}"
       - version="$(make version)"; cd build/release && ln -f -s "$${version}" latest && cd -
-      - ls -altr build/release
+
+  - name: publish-github-release
+    image: plugins/github-release:latest
+    settings:
+      api_key:
+        from_secret: github_release_token
+      files: build/release/latest/*
+    when:
+      event: tag
