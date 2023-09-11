@@ -159,7 +159,7 @@ Requires:
 
 ## Alternatives
 
-- [drone-secret-sync](https://github.com/appleboy/drone-secret-sync) can synchronise secrets across multiple orgs/repositories. Not idempotent - will update all secrets every time.
+- [drone-secret-sync](https://github.com/appleboy/drone-secret-sync) can synchronise secrets across multiple orgs/repositories. It is not idempotent though, meaning it will update all secrets, every time it is ran.
 
 ## Legal
 

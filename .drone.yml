@@ -1,7 +1,13 @@
 ---
 
 kind: pipeline
+type: docker
 name: lint
+
+platform:
+  # Using arm64 not because it's required but due to CI resourcing - would ideally be "any" (https://github.com/jnohlgard/drone-yaml/tree/arch-any)
+  arch: arm64
+
 steps:
   - name: lint-code
     image: golangci/golangci-lint
@@ -20,7 +26,12 @@ steps:
 ---
 
 kind: pipeline
+type: docker
 name: test
+
+platform:
+  arch: arm64
+
 steps:
   - name: test
     image: golang:alpine
@@ -39,7 +50,12 @@ steps:
 ---
 
 kind: pipeline
+type: docker
 name: build
+
+platform:
+  arch: arm64
+
 steps:
   - name: build-binary
     image: golang:alpine
@@ -89,7 +105,7 @@ steps:
         from_secret: github_release_token
       files: build/release/latest/*
     when:
-      event: tag
+      event: [tag]
     depends_on:
       - build-binary
       - build-container
