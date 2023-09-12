@@ -65,16 +65,15 @@ platform:
 
 steps:
   # TODO: support for different archs
-  - name: build-binary
+  - name: build-binaries
     image: golang:alpine
     commands:
       - apk add --update-cache git make
       - git config --global --add safe.directory "$${PWD}"
-      - make build
+      - make build-all
     depends_on: []
 
-  # TODO: support for different arch
-  - name: build-container
+  - name: build-containers
     # Unfortunately, we cannot use the official kaniko image because Drone CI converts commands
     # into a shell script and the kaniko image does not have a shell (https://docs.drone.io/pipeline/docker/syntax/steps/#commands)
     image: golang:alpine
@@ -86,13 +85,13 @@ steps:
       # Build container
       - mkdir -p build
       - git config --global --add safe.directory "$${PWD}"
-      - make build-container KANIKO_EXECUTOR=build/thrid-party/kaniko/out/executor
+      - make build-container-all KANIKO_EXECUTOR=build/thrid-party/kaniko/out/executor
     depends_on: []
 
   - name: link-latest
     image: alpine
     commands:
-      - apk add --update-cache git make
+      - apk add --update-cache git go make
       - git config --global --add safe.directory "$${PWD}"
       - mkdir -p build/release
       - version="$(make version)"; cd build/release && ln -f -s "$${version}" latest && cd -
@@ -107,6 +106,6 @@ steps:
     when:
       event: [tag]
     depends_on:
-      - build-binary
-      - build-container
+      - build-binaries
+      - build-containers
       - link-latest
