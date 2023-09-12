@@ -36,13 +36,19 @@ steps:
   - name: test
     image: golang:alpine
     commands:
-      - apk add --update-cache gcc libc-dev make
+      - apk add --update-cache gcc git libc-dev make
+      - git config --global --add safe.directory "$${PWD}"
       - make test
-
+  
   - name: publish-coverage
-    image: robertstettner/drone-codecov
-    settings:
-      token: 
+    image: alpine
+    commands:
+      - apk add --update-cache curl
+      - curl -fsL https://uploader.codecov.io/latest/aarch64/codecov > /usr/local/bin/codecov
+      - chmod +x /usr/local/bin/codecov
+      - codecov
+    environment:
+      CODECOV_TOKEN: 
         from_secret: codecov_token
     depends_on:
       - test
