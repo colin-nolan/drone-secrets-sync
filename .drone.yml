@@ -44,6 +44,7 @@ steps:
     image: alpine
     commands:
       - apk add --update-cache curl
+      # This is an arch specific binary
       - curl -fsL https://uploader.codecov.io/latest/aarch64/codecov > /usr/local/bin/codecov
       - chmod +x /usr/local/bin/codecov
       - codecov
@@ -63,6 +64,7 @@ platform:
   arch: arm64
 
 steps:
+  # TODO: support for different archs
   - name: build-binary
     image: golang:alpine
     commands:
@@ -71,6 +73,7 @@ steps:
       - make build
     depends_on: []
 
+  # TODO: support for different arch
   - name: build-container
     # Unfortunately, we cannot use the official kaniko image because Drone CI converts commands
     # into a shell script and the kaniko image does not have a shell (https://docs.drone.io/pipeline/docker/syntax/steps/#commands)
@@ -94,15 +97,6 @@ steps:
       - mkdir -p build/release
       - version="$(make version)"; cd build/release && ln -f -s "$${version}" latest && cd -
     depends_on: []
-
-  - name: temp
-    image: alpine
-    commands:
-      - ls -altr build/release/latest/*
-    depends_on:
-      - build-binary
-      - build-container
-      - link-latest
 
   - name: publish-github-release
     image: plugins/github-release:latest
