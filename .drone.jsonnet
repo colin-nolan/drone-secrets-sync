@@ -147,7 +147,7 @@ local buildPipeline = {
         when: {
           event: ['tag'],
         },
-        // depends_on: ["build-binaries", "build-containers", "link-latest"],
+        depends_on: std.filter(function(name) name != self.name, std.map(function(step) step.name, buildPipeline.steps))
       },
     ],
 };
