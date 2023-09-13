@@ -151,7 +151,7 @@ drone exec -pipeline=lint <(drone jsonnet --stream --stdout)
 When testing against a Drone CI installation, to clear all secrets on a repository:
 
 ```shell
-repository=colin-nolan/drone-testing
+repository=octocat/hello-world
 drone secret ls --format '{{ .Name }}' "${repository}" \
     | xargs -I {} drone secret rm --name {} "${repository}"
 ```
