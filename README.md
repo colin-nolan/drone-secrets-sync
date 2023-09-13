@@ -140,7 +140,7 @@ make format
 To run a Drone CI step manually:
 
 ```shell
-drone exec -pipeline=lint
+drone exec -pipeline=lint <(drone jsonnet --stream --stdout)
 ```
 
 ### Clear Secrets

@@ -1,3 +1,6 @@
+local makeCommandsFailOnError(commands) = 
+   ['set -euf -o pipefail'] + commands;
+
 local lintPipeline = {
   kind: 'pipeline',
   type: 'docker',
@@ -18,11 +21,11 @@ local lintPipeline = {
     {
       name: 'lint-markdown',
       image: 'python:3-alpine',
-      commands: [
+      commands: makeCommandsFailOnError([
         'apk add --update-cache make',
         'pip install mdformat-gfm',
         'make lint-markdown',
-      ],
+      ]),
       depends_on: [],
     },
   ],
@@ -39,22 +42,22 @@ local testPipeline = {
     {
       name: 'test',
       image: 'golang:alpine',
-      commands: [
+      commands: makeCommandsFailOnError([
         'apk add --update-cache gcc git libc-dev make',
         'git config --global --add safe.directory "$(pwd)"',
         'make test',
-      ],
+      ]),
     },
     {
       name: 'publish-coverage',
       image: 'alpine',
-      commands: [
+      commands: makeCommandsFailOnError([
         'apk add --update-cache curl',
         // XXX: This is an arch specific binary
         'curl -fsL https://uploader.codecov.io/latest/aarch64/codecov > /usr/local/bin/codecov',
         'chmod +x /usr/local/bin/codecov',
         'codecov',
-      ],
+      ]),
       environment: {
         CODECOV_TOKEN: {
           from_secret: 'codecov_token',
@@ -76,22 +79,22 @@ local supportedOsArchPairs = [
 local binary_build_step(os, architecture) = {
   name: 'build-binary_%s-%s' % [os, architecture],
   image: 'golang:alpine',
-  commands: [
+  commands: makeCommandsFailOnError([
     'apk add --update-cache git make',
     'git config --global --add safe.directory "$(pwd)"',
     'make build GOOS=%s GOARCH=%s' % [os, architecture],
-  ],
+  ]),
   depends_on: [],
 };
 
 local container_build_step(os, architecture) = {
   name: 'build-container_%s-%s' % [os, architecture],
   image: 'golang:alpine',
-  commands: [
+  commands: makeCommandsFailOnError([
     'apk add --update-cache git make',
     'git config --global --add safe.directory "$(pwd)"',
     'make build-container GOOS=%s GOARCH=%s KANIKO_EXECUTOR=build/third-party/kaniko/out/executor' % [os, architecture],
-  ],
+  ]),
   depends_on: ['build-kaniko-tool'],
 };
 
@@ -110,12 +113,12 @@ local buildPipeline = {
       // into a shell script and the kaniko image does not have a shell (https://docs.drone.io/pipeline/docker/syntax/steps/#commands)
       name: 'build-kaniko-tool',
       image: 'golang:alpine',
-      commands: [
+      commands: makeCommandsFailOnError([
         'apk add --update-cache bash git make',
         'if [[ ! -d build/third-party/kaniko ]]; then git clone --depth=1 --branch=main https://github.com/GoogleContainerTools/kaniko.git build/third-party/kaniko; fi',
         'cd build/third-party/kaniko',
         'make out/executor',
-      ],
+      ]),
       depends_on: [],
     }] +
     [container_build_step(x[0], x[1]) for x in supportedOsArchPairs] +
@@ -123,12 +126,12 @@ local buildPipeline = {
       {
         name: 'link-latest',
         image: 'alpine',
-        commands: [
+        commands: makeCommandsFailOnError([
           'apk add --update-cache git go make',
           'git config --global --add safe.directory "$(pwd)"',
           'mkdir -p build/release',
           'version="$(make version)"; cd build/release && ln -f -s "${version}" latest && cd -',
-        ],
+        ]),
         depends_on: [],
       },
       {
