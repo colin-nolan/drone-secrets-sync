@@ -128,9 +128,10 @@ local buildPipeline = {
         image: 'alpine',
         commands: makeCommandsFailOnError([
           'apk add --update-cache git go make',
-          'git config --global --add safe.directory "$(pwd)"',
+          'echo git config --global --add safe.directory "$${PWD}"',
+          'git config --global --add safe.directory "$${PWD}"',
           'mkdir -p build/release',
-          'version="$(make version)"; cd build/release && ln -f -s "${version}" latest && cd -',
+          'version="$(make version)"; cd build/release && ln -f -s "$${version}" latest && cd -',
         ]),
         depends_on: [],
       },
