@@ -128,12 +128,15 @@ Requires:
 
 - [golangci-lint](https://github.com/golangci/golangci-lint)
 - [mdformat-gfm](https://github.com/executablebooks/mdformat)
+- [jsonnetfmt](https://pkg.go.dev/github.com/google/go-jsonnet@v0.20.0/cmd/jsonnetfmt)
 
 #### Apply Format
 
 ```shell
 make format
 ```
+
+Requires: (see Linting)
 
 #### CI
 

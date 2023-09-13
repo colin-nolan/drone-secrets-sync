@@ -1,5 +1,6 @@
-local makeCommandsFailOnError(commands) = 
-   ['set -euf -o pipefail'] + commands;
+local makeCommandsFailOnError(commands) =
+  // Not adding `-o pipefail` because it is not supported by sh
+  ['set -euf'] + commands;
 
 local lintPipeline = {
   kind: 'pipeline',
@@ -22,9 +23,22 @@ local lintPipeline = {
       name: 'lint-markdown',
       image: 'python:3-alpine',
       commands: makeCommandsFailOnError([
-        'apk add --update-cache make',
+        'apk add --update-cache git go make',
         'pip install mdformat-gfm',
+        'git config --global --add safe.directory "$(pwd)"',
         'make lint-markdown',
+      ]),
+      depends_on: [],
+    },
+    {
+      name: 'lint-jsonnet',
+      // Could not  use `bitnami/jsonnet` as it has the user set to non-root
+      image: 'alpine',
+      commands: makeCommandsFailOnError([
+        'apk add --update-cache git go make',
+        'GOBIN=/usr/local/bin/ go install github.com/google/go-jsonnet/cmd/jsonnetfmt@latest',
+        'git config --global --add safe.directory "$(pwd)"',
+        'make lint-jsonnet',
       ]),
       depends_on: [],
     },
@@ -147,7 +161,7 @@ local buildPipeline = {
         when: {
           event: ['tag'],
         },
-        depends_on: std.filter(function(name) name != self.name, std.map(function(step) step.name, buildPipeline.steps))
+        depends_on: std.filter(function(name) name != self.name, std.map(function(step) step.name, buildPipeline.steps)),
       },
     ],
 };
