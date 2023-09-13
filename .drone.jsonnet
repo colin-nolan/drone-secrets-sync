@@ -41,7 +41,7 @@ local testPipeline = {
       image: 'golang:alpine',
       commands: [
         'apk add --update-cache gcc git libc-dev make',
-        'git config --global --add safe.directory "${PWD}"',
+        'git config --global --add safe.directory "$(pwd)"',
         'make test',
       ],
     },
@@ -78,7 +78,7 @@ local binary_build_step(os, architecture) = {
   image: 'golang:alpine',
   commands: [
     'apk add --update-cache git make',
-    'git config --global --add safe.directory "${PWD}"',
+    'git config --global --add safe.directory "$(pwd)"',
     'make build GOOS=%s GOARCH=%s' % [os, architecture],
   ],
   depends_on: [],
@@ -89,7 +89,7 @@ local container_build_step(os, architecture) = {
   image: 'golang:alpine',
   commands: [
     'apk add --update-cache git make',
-    'git config --global --add safe.directory "${PWD}"',
+    'git config --global --add safe.directory "$(pwd)"',
     'make build-container GOOS=%s GOARCH=%s KANIKO_EXECUTOR=build/third-party/kaniko/out/executor' % [os, architecture],
   ],
   depends_on: ['build-kaniko-tool'],
@@ -125,7 +125,7 @@ local buildPipeline = {
         image: 'alpine',
         commands: [
           'apk add --update-cache git go make',
-          'git config --global --add safe.directory "${PWD}"',
+          'git config --global --add safe.directory "$(pwd)"',
           'mkdir -p build/release',
           'version="$(make version)"; cd build/release && ln -f -s "${version}" latest && cd -',
         ],
@@ -148,9 +148,8 @@ local buildPipeline = {
     ],
 };
 
-std.manifestYamlStream([
+[
   lintPipeline,
   testPipeline,
   buildPipeline,
-], indent_array_in_object=false,
-  c_document_end=true)
+]
