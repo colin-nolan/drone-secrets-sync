@@ -148,8 +148,9 @@ local buildPipeline = {
     ],
 };
 
-[
+std.manifestYamlStream([
   lintPipeline,
   testPipeline,
   buildPipeline,
-]
+], indent_array_in_object=false,
+  c_document_end=true)
