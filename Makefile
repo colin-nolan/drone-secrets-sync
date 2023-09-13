@@ -12,8 +12,9 @@ ENTRYPOINT := cmd/cli/*.go
 TARGET_ARCH := amd64 arm64 arm
 TARGET_OS := linux 
 
-GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go')
-MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*')
+GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
+MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
+JSONNET_FILES := $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
 
 INSTALL_PATH := /usr/local/bin/$(BINARY_NAME)
 
@@ -26,13 +27,6 @@ all: build
 build: $(BINARY_OUTPUT_LOCATION)
 $(BINARY_OUTPUT_LOCATION): $(GO_FILES)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BINARY_OUTPUT_LOCATION) $(ENTRYPOINT)
-
-build-all:
-	@for os in $(TARGET_OS); do \
-		for arch in $(TARGET_ARCH); do \
-			make build GOOS=$${os} GOARCH=$${arch}; \
-		done \
-	done
 
 build-container: $(CONTAINER_OUTPUT_LOCATION) 
 $(CONTAINER_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
@@ -48,13 +42,6 @@ $(CONTAINER_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
 		--context ${PWD} \
 		>&2
 
-build-container-all:
-	@for os in $(TARGET_OS); do \
-		for arch in $(TARGET_ARCH); do \
-			make build-container GOOS=$${os} GOARCH=$${arch}; \
-		done \
-	done
-
 install: build
 	cp $(BINARY_OUTPUT_LOCATION) $(INSTALL_PATH)
 
@@ -66,7 +53,7 @@ clean:
 	rm -rf $(BUILD_DIRECTORY)
 	rm -f coverage.out output.log
 
-lint: lint-code lint-markdown
+lint: lint-code lint-markdown lint-jsonnet
 
 lint-code:
 	golangci-lint run --timeout 15m0s
@@ -74,7 +61,12 @@ lint-code:
 lint-markdown:
 	mdformat --check $(MARKDOWN_FILES)
 
-format: format-code format-markdown
+lint-jsonnet:
+	for file in $(JSONNET_FILES); do \
+		jsonnetfmt --test $${file}; \
+	done			
+
+format: format-code format-markdown format-jsonnet
 fmt: format
 
 format-code: $(GO_FILES)
@@ -83,10 +75,15 @@ format-code: $(GO_FILES)
 format-markdown:
 	mdformat $(MARKDOWN_FILES)
 
+format-jsonnet:
+	for file in $(JSONNET_FILES); do \
+		jsonnetfmt -i $${file}; \
+	done			
+
 test:
 	CGO_ENABLED=1 go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
 
 version:
 	@echo $(VERSION)
 
-.PHONY: all build build-all build-container-all build-container install uninstall clean lint lint-code lint-markdown format fmt format-code format-markdown test
+.PHONY: all build build-container install uninstall clean lint lint-code lint-markdown lint-jsonnet format fmt format-code format-markdown format-jsonnet test
