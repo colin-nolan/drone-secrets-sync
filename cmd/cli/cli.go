@@ -5,14 +5,16 @@ import (
 	"strings"
 
 	"github.com/alexflint/go-arg"
+	"github.com/colin-nolan/drone-secrets-sync/pkg/secrets"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 type Configuration struct {
-	Repository string
-	SourceFile string
-	LogLevel   zerolog.Level
+	Repository        string
+	SourceFile        string
+	LogLevel          zerolog.Level
+	HashConfiguration secrets.Argo2HashConfiguration
 }
 
 func (configuration *Configuration) RepositoryOwner() string {
@@ -42,8 +44,12 @@ type repositoryCmd struct {
 }
 
 type cliArgs struct {
-	Repository *repositoryCmd `arg:"subcommand:repository" help:"sync secrets for a repository"`
-	Verbose    bool           `arg:"-v,--verbose" help:"enable verbose logging"`
+	Repository            *repositoryCmd `arg:"subcommand:repository" help:"sync secrets for a repository"`
+	Argon2HashIterations  uint32         `arg:"-i,--argon2-iterations" default:"32" help:"number of argon2 iterations to create corresponding hash secret name"`
+	Argon2HashLength      uint32         `arg:"-l,--argon2-length" default:"32" help:"length of argon2 hash used in corresponding hash secret name"`
+	Argon2HashMemory      uint32         `arg:"-m,--argon2-memory" default:"65536" help:"memory for argon2 to use when creating corresponding hash secret name"`
+	Argon2HashParallelism uint8          `arg:"-p,--argon2-parallelism" default:"4" help:"parallelism used when creating argon2 hash"`
+	Verbose               bool           `arg:"-v,--verbose" help:"enable verbose logging"`
 }
 
 func (cliArgs) Version() string {
@@ -61,6 +67,12 @@ func ReadCliArgs() Configuration {
 
 	configuration := Configuration{
 		LogLevel: logLevel,
+		HashConfiguration: secrets.Argo2HashConfiguration{
+			Iterations:  args.Argon2HashIterations,
+			Memory:      args.Argon2HashMemory,
+			Parallelism: args.Argon2HashParallelism,
+			Length:      args.Argon2HashLength,
+		},
 	}
 	if args.Repository != nil {
 		configuration.Repository = args.Repository.Repository
@@ -68,5 +80,6 @@ func ReadCliArgs() Configuration {
 	} else {
 		parser.Fail("No subcommand specified")
 	}
+
 	return configuration
 }

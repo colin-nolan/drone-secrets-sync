@@ -6,8 +6,14 @@ import (
 )
 
 var (
-	exampleMaskedSecret = MaskedSecret{Name: "secret1"}
-	exampleSecret       = Secret{MaskedSecret: exampleMaskedSecret, Value: "value1"}
+	exampleMaskedSecret           = MaskedSecret{Name: "secret1"}
+	exampleSecret                 = Secret{MaskedSecret: exampleMaskedSecret, Value: "value1", Argo2HashConfiguration: exampleArgo2HashConfiguration}
+	exampleArgo2HashConfiguration = Argo2HashConfiguration{
+		Iterations:  8,
+		Memory:      1024,
+		Parallelism: 1,
+		Length:      1,
+	}
 )
 
 func TestHashedNamePrefix(t *testing.T) {
@@ -44,10 +50,10 @@ func TestHashedName(t *testing.T) {
 
 func TestNewSecret(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		secret := NewSecret(exampleSecret.Name, exampleSecret.Value)
+		secret := NewSecret(exampleSecret.Name, exampleSecret.Value, exampleArgo2HashConfiguration)
 
 		if secret.Name != exampleSecret.Name || secret.Value != exampleSecret.Value {
-			t.Errorf("Secrets should have the same name and value: %s != %s", secret, exampleSecret)
+			t.Errorf("Secrets should have the same name and value: (%s, %s) != (%s, %s)", secret.Name, secret.Value, exampleSecret.Name, exampleSecret.Value)
 		}
 	})
 }

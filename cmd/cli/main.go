@@ -15,7 +15,7 @@ import (
 
 func main() {
 	configuration := ReadCliArgs()
-	secrets := readSecrets(configuration.SourceFile)
+	secrets := readSecrets(configuration.SourceFile, configuration.HashConfiguration)
 	credential := readCredential()
 
 	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
@@ -41,7 +41,7 @@ func syncSecrets(repositoryOwner string, repositoryName string, secretsToSync []
 	return updatedSecrets
 }
 
-func readSecrets(sourceFile string) []secrets.Secret {
+func readSecrets(sourceFile string, hashConfiguration secrets.Argo2HashConfiguration) []secrets.Secret {
 	var inputData []byte
 	var err error
 	if sourceFile == "-" {
@@ -61,7 +61,7 @@ func readSecrets(sourceFile string) []secrets.Secret {
 
 	var secretValuePairs []secrets.Secret
 	for key, value := range secretValueMap {
-		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string)))
+		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string), hashConfiguration))
 	}
 	return secretValuePairs
 }

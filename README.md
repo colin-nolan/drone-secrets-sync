@@ -41,7 +41,7 @@ Pull Request Read:  false
 Pull Request Write: false
 ```
 
-Be aware that exposing hashes makes it possible for an attacker that has gained access to the Drone API to brute force secret values offline. Hashes are generated using [Argon2](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf) to make attacks more difficult.
+Be aware that exposing hashes makes it possible for an attacker that has gained access to the Drone API to brute force secret values offline. Hashes are generated using [Argon2](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf) to make attacks more difficult. The memory and compute required to generate hashes can be configured.
 
 ## Installation
 
@@ -60,9 +60,17 @@ export DRONE_SERVER=http://drone.mycompany.com
 ```
 
 ```text
-Usage: drone-secrets-sync [--verbose] <command> [<args>]
+Usage: drone-secrets-sync_linux-amd64 [--argon2-iterations ARGON2-ITERATIONS] [--argon2-length ARGON2-LENGTH] [--argon2-memory ARGON2-MEMORY] [--argon2-parallelism ARGON2-PARALLELISM] [--verbose] <command> [<args>]
 
 Options:
+  --argon2-iterations ARGON2-ITERATIONS, -i ARGON2-ITERATIONS
+                         number of argon2 iterations to create corresponding hash secret name [default: 32]
+  --argon2-length ARGON2-LENGTH, -l ARGON2-LENGTH
+                         length of argon2 hash used in corresponding hash secret name [default: 32]
+  --argon2-memory ARGON2-MEMORY, -m ARGON2-MEMORY
+                         memory for argon2 to use when creating corresponding hash secret name [default: 65536]
+  --argon2-parallelism ARGON2-PARALLELISM, -p ARGON2-PARALLELISM
+                         parallelism used when creating argon2 hash [default: 4]
   --verbose, -v          enable verbose logging
   --help, -h             display this help and exit
   --version              display version and exit
@@ -72,13 +80,21 @@ Commands:
 ```
 
 ```text
-Usage: drone-secrets-sync repository REPOSITORY [SECRETSFILE]
+Usage: drone-secrets-sync_linux-amd64 repository REPOSITORY [SECRETSFILE]
 
 Positional arguments:
   REPOSITORY             repository to sync secrets for, e.g. octocat/hello-world
   SECRETSFILE            location to read secrets from (default: - (stdin))
 
 Global options:
+  --argon2-iterations ARGON2-ITERATIONS, -i ARGON2-ITERATIONS
+                         number of argon2 iterations to create corresponding hash secret name [default: 32]
+  --argon2-length ARGON2-LENGTH, -l ARGON2-LENGTH
+                         length of argon2 hash used in corresponding hash secret name [default: 32]
+  --argon2-memory ARGON2-MEMORY, -m ARGON2-MEMORY
+                         memory for argon2 to use when creating corresponding hash secret name [default: 65536]
+  --argon2-parallelism ARGON2-PARALLELISM, -p ARGON2-PARALLELISM
+                         parallelism used when creating argon2 hash [default: 4]
   --verbose, -v          enable verbose logging
   --help, -h             display this help and exit
   --version              display version and exit

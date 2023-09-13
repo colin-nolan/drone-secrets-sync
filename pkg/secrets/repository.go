@@ -19,16 +19,17 @@ type MinimalClient interface {
 
 // Secret manager for a Drone CI repository. Implemented against `SecretManager` interface.
 type RepositorySecretManager struct {
-	Client MinimalClient
-	Owner  string
-	Name   string
+	Client                  MinimalClient
+	Owner                   string
+	Name                    string
+	SecretHashConfiguration Argo2HashConfiguration
 }
 
 func (manager RepositorySecretManager) ListSecrets() ([]MaskedSecret, error) {
 	log.Info().Msgf("Getting list of secrets for %s/%s", manager.Owner, manager.Name)
 	secretEntries, err := manager.Client.SecretList(manager.Owner, manager.Name)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting secrets for %s/%s", manager.Owner, manager.Name)
+		return nil, fmt.Errorf("error getting secrets for %s/%s", manager.Owner, manager.Name)
 	}
 
 	var secrets []MaskedSecret

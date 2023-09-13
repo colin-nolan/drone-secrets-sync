@@ -59,16 +59,19 @@ var (
 		Name: "example3",
 	}
 	exampleSecret1 = Secret{
-		MaskedSecret: exampleMaskedSecret1,
-		Value:        "example-value1",
+		MaskedSecret:           exampleMaskedSecret1,
+		Value:                  "example-value1",
+		Argo2HashConfiguration: exampleArgo2HashConfiguration,
 	}
 	exampleSecret2 = Secret{
-		MaskedSecret: exampleMaskedSecret2,
-		Value:        "example-value2",
+		MaskedSecret:           exampleMaskedSecret2,
+		Value:                  "example-value2",
+		Argo2HashConfiguration: exampleArgo2HashConfiguration,
 	}
 	exampleSecret3 = Secret{
-		MaskedSecret: exampleMaskedSecret3,
-		Value:        "example-value3",
+		MaskedSecret:           exampleMaskedSecret3,
+		Value:                  "example-value3",
+		Argo2HashConfiguration: exampleArgo2HashConfiguration,
 	}
 )
 
