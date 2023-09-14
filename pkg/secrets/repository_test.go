@@ -34,12 +34,14 @@ func (client *MockClient) SecretDelete(owner string, name string, secret string)
 	return args.Error(0)
 }
 
-func createRepositorySecretManager(owner string, name string) (RepositorySecretManager, *MockClient) {
+func createRepositorySecretManager(owner string, name string) (SecretManager, *MockClient) {
 	mockClient := new(MockClient)
-	return RepositorySecretManager{
-		Client: mockClient,
-		Owner:  owner,
-		Name:   name,
+	return SecretManager{
+		DroneSecretManager: RepositoryDroneSecretsManager{
+			Client:     mockClient,
+			Owner:      owner,
+			Repository: name,
+		},
 	}, mockClient
 }
 
@@ -285,7 +287,6 @@ func TestSyncSecret(t *testing.T) {
 			assert.Nil(t, err)
 			assert.True(t, updated)
 		})
-
 	})
 }
 

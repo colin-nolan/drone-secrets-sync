@@ -27,10 +27,12 @@ func main() {
 func syncSecrets(repositoryOwner string, repositoryName string, secretsToSync []secrets.Secret, credential client.Credential) []string {
 	client := client.CreateClient(credential)
 
-	repositorySecretManager := secrets.RepositorySecretManager{
-		Client: client,
-		Owner:  repositoryOwner,
-		Name:   repositoryName,
+	repositorySecretManager := secrets.SecretManager{
+		DroneSecretManager: secrets.RepositoryDroneSecretsManager{
+			Client:     client,
+			Owner:      repositoryOwner,
+			Repository: repositoryName,
+		},
 	}
 
 	updatedSecrets, err := repositorySecretManager.SyncSecrets(secretsToSync, false)
