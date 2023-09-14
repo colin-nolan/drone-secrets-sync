@@ -3,10 +3,13 @@ local make_commands_fail_on_error(commands) =
   // Not adding `-o pipefail` because it is not supported by sh
   ['set -euf'] + commands;
 
-local bypass_git_ownership_protection_command = 'git config --global --add safe.directory "$${PWD}"';
-
 // Using arm64 not because it's required but due to CI resourcing - would ideally be "any" (https://github.com/jnohlgard/drone-yaml/tree/arch-any)
 local build_arch = 'arm64';
+
+local create_setup_commands(extra_apk_packages=[]) = make_commands_fail_on_error([
+  'apk add --update-cache git go make %s' % std.join(' ', extra_apk_packages),
+  'git config --global --add safe.directory "$${PWD}"',
+]);
 
 // --------- Lint Pipeline ---------
 local lint_pipeline = {
@@ -20,32 +23,28 @@ local lint_pipeline = {
     {
       name: 'lint-code',
       image: 'golangci/golangci-lint',
-      commands: [
+      commands: make_commands_fail_on_error([
         'make lint-code',
-      ],
+      ]),
       depends_on: [],
     },
     {
       name: 'lint-markdown',
       image: 'python:3-alpine',
-      commands: make_commands_fail_on_error([
-        'apk add --update-cache git go make',
+      commands: create_setup_commands() + [
         'pip install mdformat-gfm',
-        bypass_git_ownership_protection_command,
         'make lint-markdown',
-      ]),
+      ],
       depends_on: [],
     },
     {
       name: 'lint-jsonnet',
-      // Could not  use `bitnami/jsonnet` as it has the user set to non-root
+      // Was not able tp use `bitnami/jsonnet` as it has the user set to non-root
       image: 'alpine',
-      commands: make_commands_fail_on_error([
-        'apk add --update-cache git go make',
+      commands: create_setup_commands() + [
         'GOBIN=/usr/local/bin/ go install github.com/google/go-jsonnet/cmd/jsonnetfmt@latest',
-        bypass_git_ownership_protection_command,
         'make lint-jsonnet',
-      ]),
+      ],
       depends_on: [],
     },
   ],
@@ -63,11 +62,9 @@ local test_pipeline = {
     {
       name: 'unit-test',
       image: 'golang:alpine',
-      commands: make_commands_fail_on_error([
-        'apk add --update-cache gcc git libc-dev make',
-        bypass_git_ownership_protection_command,
+      commands: create_setup_commands(['gcc', 'libc-dev']) + [
         'make test',
-      ]),
+      ],
     },
     {
       name: 'publish-coverage',
@@ -104,11 +101,9 @@ local binary_build_step_name_prefix = 'build-binary_';
 local binary_build_step(os, architecture) = {
   name: '%s%s-%s' % [binary_build_step_name_prefix, os, architecture],
   image: 'golang:alpine',
-  commands: make_commands_fail_on_error([
-    'apk add --update-cache git make',
-    bypass_git_ownership_protection_command,
+  commands: create_setup_commands() + [
     'make build GOOS=%s GOARCH=%s' % [os, architecture],
-  ]),
+  ],
   depends_on: [],
 } + tag_if_not_build_architecture(architecture);
 
@@ -116,23 +111,19 @@ local image_build_step_name_prefix = 'build-image_';
 local image_build_step(os, architecture) = {
   name: '%s%s-%s' % [image_build_step_name_prefix, os, architecture],
   image: 'golang:alpine',
-  commands: make_commands_fail_on_error([
-    'apk add --update-cache git make',
-    bypass_git_ownership_protection_command,
+  commands: create_setup_commands() + [
     'make build-image GOOS=%s GOARCH=%s KANIKO_EXECUTOR=build/third-party/kaniko/out/executor' % [os, architecture],
-  ]),
+  ],
   depends_on: ['build-kaniko-tool'],
 } + tag_if_not_build_architecture(architecture);
 
 local create_image_publish_step(name_postfix, tag_expression) = {
   name: 'publish-image-%s' % name_postfix,
   image: 'alpine',
-  commands: make_commands_fail_on_error([
-    'apk --update-cache add docker git go make skopeo',
-    bypass_git_ownership_protection_command,
+  commands: create_setup_commands(['docker', 'skopeo']) + [
     'echo "$${DOCKER_TOKEN}" | docker login --password-stdin --username "$${DOCKER_USERNAME}"',
     'skopeo copy --all dir:build/release/$$(make version)/multiarch docker://colinnolan/drone-secrets-sync:%s' % tag_expression,
-  ]),
+  ],
   environment: {
     DOCKER_USERNAME: {
       from_secret: 'dockerhub_username',
@@ -163,12 +154,11 @@ local build_pipeline = {
       // into a shell script and the kaniko image does not have a shell (https://docs.drone.io/pipeline/docker/syntax/steps/#commands)
       name: 'build-kaniko-tool',
       image: 'golang:alpine',
-      commands: make_commands_fail_on_error([
-        'apk add --update-cache bash git make',
+      commands: create_setup_commands(['bash']) + [
         'if [[ ! -d build/third-party/kaniko ]]; then git clone --depth=1 --branch=main https://github.com/GoogleContainerTools/kaniko.git build/third-party/kaniko; fi',
         'cd build/third-party/kaniko',
         'make out/executor',
-      ]),
+      ],
       depends_on: [],
     }] +
     [image_build_step(x[0], x[1]) for x in supported_os_arch_pairs] +
@@ -176,11 +166,9 @@ local build_pipeline = {
       {
         name: 'build-multiarch-image',
         image: 'alpine',
-        commands: make_commands_fail_on_error([
-          'apk --update-cache add bash git go jq make skopeo',
-          bypass_git_ownership_protection_command,
+        commands: create_setup_commands(['bash', 'jq', 'skopeo']) + [
           'make build-image-multiarch',
-        ]),
+        ],
         depends_on: find_build_steps(image_build_step_name_prefix, build_pipeline.steps),
         when: {
           event: ['tag'],
@@ -191,13 +179,10 @@ local build_pipeline = {
       {
         name: 'link-latest',
         image: 'alpine',
-        commands: make_commands_fail_on_error([
-          'apk add --update-cache git go make',
-          'echo git config --global --add safe.directory "$${PWD}"',
-          bypass_git_ownership_protection_command,
+        commands: create_setup_commands() + [
           'mkdir -p build/release',
           'version="$(make version)"; cd build/release && ln -f -s "$${version}" latest && cd -',
-        ]),
+        ],
         when: {
           event: ['tag'],
         },
