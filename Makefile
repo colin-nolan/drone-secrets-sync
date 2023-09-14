@@ -1,24 +1,23 @@
 VERSION = $(shell git describe --tags --exact-match HEAD 2> /dev/null || git rev-parse --short HEAD)
 
-BUILD_DIRECTORY := build
-RELEASE_DIRECTORY:= $(BUILD_DIRECTORY)/release/$(VERSION)
+BUILD_DIRECTORY = build
+RELEASE_DIRECTORY= $(BUILD_DIRECTORY)/release/$(VERSION)
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 BINARY_NAME := drone-secrets-sync
-BINARY_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(GOOS)-$(GOARCH)
+BINARY_OUTPUT_LOCATION = $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(GOOS)-$(GOARCH)
 BINARY_OUTPUT_BIN_COPY_LOCATION := bin/$(BINARY_NAME)
-ENTRYPOINT := cmd/cli/*.go
+ENTRYPOINT := $(wildcard cmd/cli/*.go)
 
 TARGET_ARCH := amd64 arm64 arm
 TARGET_OS := linux 
 
-GO_FILES = $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
-MARKDOWN_FILES = $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
-JSONNET_FILES = $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
-IMAGE_IMAGE_FILES = $(shell find $(RELEASE_DIRECTORY) -type f -name '*.tar')
+GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
+MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
+JSONNET_FILES := $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
 
-INSTALL_PATH := /usr/local/bin/$(BINARY_NAME)
+INSTALL_PATH = /usr/local/bin/$(BINARY_NAME)
 
 KANIKO_EXECUTOR ?= docker run --rm -v ${PWD}:${PWD} -w ${PWD} gcr.io/kaniko-project/executor:latest
 DOCKER_IMAGE_NAME := colin-nolan/$(BINARY_NAME):$(VERSION)
@@ -50,6 +49,7 @@ $(IMAGE_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
 build-image-and-load: build-image
 	docker load -i $(IMAGE_OUTPUT_LOCATION)
 
+build-image-multiarch: IMAGE_IMAGE_FILES = $(shell find $(RELEASE_DIRECTORY) -type f -name '*.tar')
 build-image-multiarch: $(IMAGE_IMAGE_FILES)
 	scripts/create-multiarch-image.sh $(MULTIARCH_IMAGES_OUTPUT_LOCATION) $(IMAGE_IMAGE_FILES)
 
