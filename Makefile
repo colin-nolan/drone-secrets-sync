@@ -1,7 +1,7 @@
 ifeq ($(origin DRONE_TAG), environment)
     VERSION := $(DRONE_TAG)
 else
-    VERSION := $(shell git describe --tags --exact-match HEAD 2> /dev/null || git rev-parse --short HEAD)
+    VERSION ?= $(shell git describe --tags --exact-match HEAD 2> /dev/null || git rev-parse --short HEAD)
 endif
 
 BUILD_DIRECTORY := build
