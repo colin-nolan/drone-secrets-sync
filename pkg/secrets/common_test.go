@@ -4,39 +4,38 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/drone/drone-go/drone"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockDroneSecretsManager struct {
+type MockSecretsManager struct {
 	mock.Mock
 }
 
-func (manager *MockDroneSecretsManager) List() ([]*drone.Secret, error) {
+func (manager *MockSecretsManager) List() ([]string, error) {
 	args := manager.Called()
-	return args.Get(0).([]*drone.Secret), args.Error(1)
+	return args.Get(0).([]string), args.Error(1)
 }
 
-func (manager *MockDroneSecretsManager) Create(secretName string, secretValue string) (*drone.Secret, error) {
+func (manager *MockSecretsManager) Create(secretName string, secretValue string) error {
 	args := manager.Called(secretName, secretValue)
-	return args.Get(0).(*drone.Secret), args.Error(1)
+	return args.Error(0)
 }
 
-func (manager *MockDroneSecretsManager) Update(secretName string, secretValue string) (*drone.Secret, error) {
+func (manager *MockSecretsManager) Update(secretName string, secretValue string) error {
 	args := manager.Called(secretName, secretValue)
-	return args.Get(0).(*drone.Secret), args.Error(1)
+	return args.Error(0)
 }
 
-func (manager *MockDroneSecretsManager) Delete(secretName string) error {
+func (manager *MockSecretsManager) Delete(secretName string) error {
 	args := manager.Called(secretName)
 	return args.Error(0)
 }
 
-func createMockSecretManager() (SecretManager, *MockDroneSecretsManager) {
-	manager := new(MockDroneSecretsManager)
-	return SecretManager{
-		DroneSecretManager: manager,
+func createMockSyncedSecretManager() (SyncedSecretManager, *MockSecretsManager) {
+	manager := new(MockSecretsManager)
+	return SyncedSecretManager{
+		GenericSecretManager: manager,
 	}, manager
 }
 
@@ -67,13 +66,11 @@ var (
 	}
 )
 
+// Tests for `ListSecrets` ----------
 func TestListSecrets(t *testing.T) {
 	t.Run("existing-secrets", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{
-			{Name: exampleMaskedSecret1.Name},
-			{Name: exampleMaskedSecret2.Name},
-		}, nil).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{exampleMaskedSecret1.Name, exampleMaskedSecret2.Name}, nil).Once()
 
 		secrets, err := repository.ListSecrets()
 		assert.Nil(t, err)
@@ -84,8 +81,8 @@ func TestListSecrets(t *testing.T) {
 	})
 
 	t.Run("no-secrets", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{}, nil).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{}, nil).Once()
 
 		secrets, err := repository.ListSecrets()
 		assert.Nil(t, err)
@@ -93,8 +90,8 @@ func TestListSecrets(t *testing.T) {
 	})
 
 	t.Run("err", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{}, errors.New("example")).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{}, errors.New("example")).Once()
 
 		_, err := repository.ListSecrets()
 		assert.NotNil(t, err)
@@ -104,14 +101,14 @@ func TestListSecrets(t *testing.T) {
 // Tests for `ListSyncedSecrets` ----------
 func TestListSyncedSecrets(t *testing.T) {
 	t.Run("partial-synced", func(t *testing.T) {
-		repository, client := createMockSecretManager()
+		repository, client := createMockSyncedSecretManager()
 		client.On("List").Return(
-			[]*drone.Secret{
-				{Name: exampleSecret1.Name},
-				{Name: exampleSecret1.HashedName()},
-				{Name: exampleSecret2.Name},
-				{Name: exampleSecret3.HashedName()},
-				{Name: exampleSecret3.Name},
+			[]string{
+				exampleSecret1.Name,
+				exampleSecret1.HashedName(),
+				exampleSecret2.Name,
+				exampleSecret3.HashedName(),
+				exampleSecret3.Name,
 			}, nil).Once()
 
 		secrets, err := repository.ListSyncedSecrets()
@@ -123,8 +120,8 @@ func TestListSyncedSecrets(t *testing.T) {
 	})
 
 	t.Run("no-secrets", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{}, nil).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{}, nil).Once()
 
 		secrets, err := repository.ListSyncedSecrets()
 		assert.Nil(t, err)
@@ -132,11 +129,11 @@ func TestListSyncedSecrets(t *testing.T) {
 	})
 
 	t.Run("no-synced", func(t *testing.T) {
-		repository, client := createMockSecretManager()
+		repository, client := createMockSyncedSecretManager()
 		client.On("List").Return(
-			[]*drone.Secret{
-				{Name: exampleMaskedSecret1.Name},
-				{Name: exampleMaskedSecret2.Name},
+			[]string{
+				exampleMaskedSecret1.Name,
+				exampleMaskedSecret2.Name,
 			}, nil).Once()
 
 		secrets, err := repository.ListSyncedSecrets()
@@ -145,8 +142,8 @@ func TestListSyncedSecrets(t *testing.T) {
 	})
 
 	t.Run("err", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{}, errors.New("example")).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{}, errors.New("example")).Once()
 
 		_, err := repository.ListSyncedSecrets()
 		assert.NotNil(t, err)
@@ -155,10 +152,10 @@ func TestListSyncedSecrets(t *testing.T) {
 
 func TestSyncSecret(t *testing.T) {
 	t.Run("no-existing-secrets", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{}, nil).Once()
-		client.On("Create", exampleSecret1.Name, exampleSecret1.Value).Return(&drone.Secret{}, nil).Once()
-		client.On("Create", exampleSecret1.HashedName(), mock.AnythingOfType("string")).Return(&drone.Secret{}, nil).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{}, nil).Once()
+		client.On("Create", exampleSecret1.Name, exampleSecret1.Value).Return(nil).Once()
+		client.On("Create", exampleSecret1.HashedName(), mock.AnythingOfType("string")).Return(nil).Once()
 
 		updated, err := repository.SyncSecret(exampleSecret1, false)
 
@@ -171,14 +168,14 @@ func TestSyncSecret(t *testing.T) {
 	})
 
 	t.Run("outdated-secret", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{
-			{Name: exampleSecret1.Name},
-			{Name: exampleSecret1.HashedName() + "old"},
-			{Name: exampleSecret1.HashedName() + "old2"},
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{
+			exampleSecret1.Name,
+			exampleSecret1.HashedName() + "old",
+			exampleSecret1.HashedName() + "old2",
 		}, nil).Once()
-		client.On("Update", exampleSecret1.Name, exampleSecret1.Value).Return(&drone.Secret{}, nil).Once()
-		client.On("Create", exampleSecret1.HashedName(), mock.AnythingOfType("string")).Return(&drone.Secret{}, nil).Once()
+		client.On("Update", exampleSecret1.Name, exampleSecret1.Value).Return(nil).Once()
+		client.On("Create", exampleSecret1.HashedName(), mock.AnythingOfType("string")).Return(nil).Once()
 		client.On("Delete", exampleSecret1.HashedName()+"old").Return(nil).Once()
 		client.On("Delete", exampleSecret1.HashedName()+"old2").Return(nil).Once()
 
@@ -189,12 +186,12 @@ func TestSyncSecret(t *testing.T) {
 	})
 
 	t.Run("unsynced-secret", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{
-			{Name: exampleSecret1.Name},
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{
+			exampleSecret1.Name,
 		}, nil).Once()
-		client.On("Update", exampleSecret1.Name, exampleSecret1.Value).Return(&drone.Secret{}, nil).Once()
-		client.On("Create", exampleSecret1.HashedName(), mock.AnythingOfType("string")).Return(&drone.Secret{}, nil).Once()
+		client.On("Update", exampleSecret1.Name, exampleSecret1.Value).Return(nil).Once()
+		client.On("Create", exampleSecret1.HashedName(), mock.AnythingOfType("string")).Return(nil).Once()
 
 		updated, err := repository.SyncSecret(exampleSecret1, false)
 
@@ -207,11 +204,11 @@ func TestSyncSecret(t *testing.T) {
 	})
 
 	t.Run("same-secret", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{
-			{Name: exampleSecret1.Name},
-			{Name: exampleSecret1.HashedName()},
-			{Name: exampleSecret1.HashedName() + "extra"},
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{
+			exampleSecret1.Name,
+			exampleSecret1.HashedName(),
+			exampleSecret1.HashedName() + "extra",
 		}, nil).Once()
 
 		updated, err := repository.SyncSecret(exampleSecret1, false)
@@ -220,28 +217,28 @@ func TestSyncSecret(t *testing.T) {
 	})
 
 	t.Run("err-secret-list", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{}, errors.New("example")).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{}, errors.New("example")).Once()
 
 		_, err := repository.SyncSecret(exampleSecret1, false)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("err-secret-create", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{}, nil).Once()
-		client.On("Create", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&drone.Secret{}, errors.New("example")).Once()
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{}, nil).Once()
+		client.On("Create", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(errors.New("example")).Once()
 
 		_, err := repository.SyncSecret(exampleSecret1, false)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("err-secret-update", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{
-			{Name: exampleSecret1.Name},
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{
+			exampleSecret1.Name,
 		}, nil).Once()
-		client.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&drone.Secret{}, errors.New("example")).Once()
+		client.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(errors.New("example")).Once()
 
 		_, err := repository.SyncSecret(exampleSecret1, false)
 		assert.NotNil(t, err)
@@ -249,10 +246,10 @@ func TestSyncSecret(t *testing.T) {
 
 	t.Run("dry-run", func(t *testing.T) {
 		t.Run("no-update-required", func(t *testing.T) {
-			repository, client := createMockSecretManager()
-			client.On("List").Return([]*drone.Secret{
-				{Name: exampleSecret1.Name},
-				{Name: exampleSecret1.HashedName()},
+			repository, client := createMockSyncedSecretManager()
+			client.On("List").Return([]string{
+				exampleSecret1.Name,
+				exampleSecret1.HashedName(),
 			}, nil).Once()
 
 			updated, err := repository.SyncSecret(exampleSecret1, true)
@@ -261,8 +258,8 @@ func TestSyncSecret(t *testing.T) {
 		})
 
 		t.Run("create-required", func(t *testing.T) {
-			repository, client := createMockSecretManager()
-			client.On("List").Return([]*drone.Secret{}, nil).Once()
+			repository, client := createMockSyncedSecretManager()
+			client.On("List").Return([]string{}, nil).Once()
 
 			updated, err := repository.SyncSecret(exampleSecret1, true)
 			assert.Nil(t, err)
@@ -270,9 +267,9 @@ func TestSyncSecret(t *testing.T) {
 		})
 
 		t.Run("update-required", func(t *testing.T) {
-			repository, client := createMockSecretManager()
-			client.On("List").Return([]*drone.Secret{
-				{Name: exampleSecret1.Name},
+			repository, client := createMockSyncedSecretManager()
+			client.On("List").Return([]string{
+				exampleSecret1.Name,
 			}, nil).Once()
 
 			updated, err := repository.SyncSecret(exampleSecret1, true)
@@ -284,7 +281,7 @@ func TestSyncSecret(t *testing.T) {
 
 func TestSyncSecrets(t *testing.T) {
 	t.Run("no-secrets", func(t *testing.T) {
-		repository, _ := createMockSecretManager()
+		repository, _ := createMockSyncedSecretManager()
 
 		updatedSecrets, err := repository.SyncSecrets([]Secret{}, false)
 		assert.Nil(t, err)
@@ -292,18 +289,18 @@ func TestSyncSecrets(t *testing.T) {
 	})
 
 	t.Run("updated-secrets", func(t *testing.T) {
-		repository, client := createMockSecretManager()
-		client.On("List").Return([]*drone.Secret{
-			{Name: exampleSecret1.Name},
-			{Name: exampleSecret1.HashedName()},
-			{Name: exampleSecret2.Name},
-			{Name: exampleSecret3.Name},
-			{Name: exampleSecret3.HashedName() + "old"},
+		repository, client := createMockSyncedSecretManager()
+		client.On("List").Return([]string{
+			exampleSecret1.Name,
+			exampleSecret1.HashedName(),
+			exampleSecret2.Name,
+			exampleSecret3.Name,
+			exampleSecret3.HashedName() + "old",
 		}, nil).Once()
-		client.On("Create", exampleSecret2.HashedName(), mock.AnythingOfType("string")).Return(&drone.Secret{}, nil).Once()
-		client.On("Create", exampleSecret3.HashedName(), mock.AnythingOfType("string")).Return(&drone.Secret{}, nil).Once()
-		client.On("Update", exampleSecret2.Name, exampleSecret2.Value).Return(&drone.Secret{}, nil).Once()
-		client.On("Update", exampleSecret3.Name, exampleSecret3.Value).Return(&drone.Secret{}, nil).Once()
+		client.On("Create", exampleSecret2.HashedName(), mock.AnythingOfType("string")).Return(nil).Once()
+		client.On("Create", exampleSecret3.HashedName(), mock.AnythingOfType("string")).Return(nil).Once()
+		client.On("Update", exampleSecret2.Name, exampleSecret2.Value).Return(nil).Once()
+		client.On("Update", exampleSecret3.Name, exampleSecret3.Value).Return(nil).Once()
 		client.On("Delete", exampleSecret3.HashedName()+"old").Return(nil).Once()
 
 		updatedSecrets, err := repository.SyncSecrets([]Secret{

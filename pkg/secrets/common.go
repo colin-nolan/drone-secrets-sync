@@ -4,39 +4,39 @@ import (
 	"fmt"
 
 	"github.com/derekparker/trie"
-	"github.com/drone/drone-go/drone"
 
 	"github.com/rs/zerolog/log"
 )
 
-type DroneSecretsManager interface {
-	List() ([]*drone.Secret, error)
-	Create(secretName string, secretValue string) (*drone.Secret, error)
-	Update(secretName string, secretValue string) (*drone.Secret, error)
+// TODO: document
+type GenericSecretsManager interface {
+	List() ([]string, error)
+	Create(secretName string, secretValue string) error
+	Update(secretName string, secretValue string) error
 	Delete(secretName string) error
 }
 
-type SecretManager struct {
-	DroneSecretManager DroneSecretsManager
+type SyncedSecretManager struct {
+	GenericSecretManager GenericSecretsManager
 }
 
-func (manager SecretManager) ListSecrets() ([]MaskedSecret, error) {
-	secretEntries, err := manager.DroneSecretManager.List()
+func (manager SyncedSecretManager) ListSecrets() ([]MaskedSecret, error) {
+	secretNames, err := manager.GenericSecretManager.List()
 	if err != nil {
 		return nil, fmt.Errorf("error getting secrets for")
 	}
 
 	var secrets []MaskedSecret
-	for _, secretEntry := range secretEntries {
+	for _, secretName := range secretNames {
 		secrets = append(secrets, MaskedSecret{
-			Name: secretEntry.Name,
+			Name: secretName,
 		})
 	}
 
 	return secrets, nil
 }
 
-func (manager SecretManager) ListSyncedSecrets() ([]MaskedSecret, error) {
+func (manager SyncedSecretManager) ListSyncedSecrets() ([]MaskedSecret, error) {
 	secretsPrefixTree, err := manager.getSecretsPrefixTree()
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (manager SecretManager) ListSyncedSecrets() ([]MaskedSecret, error) {
 	return managedSecrets, nil
 }
 
-func (manager SecretManager) SyncSecret(secret Secret, dryRun bool) (updated bool, err error) {
+func (manager SyncedSecretManager) SyncSecret(secret Secret, dryRun bool) (updated bool, err error) {
 	secretsPrefixTree, err := manager.getSecretsPrefixTree()
 	if err != nil {
 		return false, err
@@ -74,7 +74,7 @@ func (manager SecretManager) SyncSecret(secret Secret, dryRun bool) (updated boo
 	return manager.syncSecret(secret, secretsPrefixTree, dryRun)
 }
 
-func (manager SecretManager) SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error) {
+func (manager SyncedSecretManager) SyncSecrets(secrets []Secret, dryRun bool) (updated []SecretName, err error) {
 	if len(secrets) == 0 {
 		return []SecretName{}, nil
 	}
@@ -96,7 +96,7 @@ func (manager SecretManager) SyncSecrets(secrets []Secret, dryRun bool) (updated
 	return updatedSecretNames, nil
 }
 
-func (manager SecretManager) getSecretsPrefixTree() (*trie.Trie, error) {
+func (manager SyncedSecretManager) getSecretsPrefixTree() (*trie.Trie, error) {
 	secrets, err := manager.ListSecrets()
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (manager SecretManager) getSecretsPrefixTree() (*trie.Trie, error) {
 	return secretsPrefixTree, nil
 }
 
-func (manager SecretManager) syncSecret(secret Secret, existingSecrets *trie.Trie, dryRun bool) (updated bool, err error) {
+func (manager SyncedSecretManager) syncSecret(secret Secret, existingSecrets *trie.Trie, dryRun bool) (updated bool, err error) {
 	secretIsNew := true
 	if node, _ := existingSecrets.Find(secret.Name); node != nil {
 		log.Debug().Msg("Secret already exists")
@@ -129,7 +129,7 @@ func (manager SecretManager) syncSecret(secret Secret, existingSecrets *trie.Tri
 	matched := existingSecrets.PrefixSearch(secret.HashedNamePrefix())
 	for _, match := range matched {
 		log.Info().Msgf("Deleting old hash secret: %s", secret.Name)
-		err = manager.DroneSecretManager.Delete(match)
+		err = manager.GenericSecretManager.Delete(match)
 		if err != nil {
 			return true, err
 		}
@@ -138,13 +138,13 @@ func (manager SecretManager) syncSecret(secret Secret, existingSecrets *trie.Tri
 	// Adding/Updating secret
 	if secretIsNew {
 		log.Info().Msgf("Adding secret: %s", secret.Name)
-		_, err = manager.DroneSecretManager.Create(secret.Name, secret.Value)
+		err = manager.GenericSecretManager.Create(secret.Name, secret.Value)
 		if err != nil {
 			return true, err
 		}
 	} else {
 		log.Info().Msgf("Updating secret: %s", secret.Name)
-		_, err = manager.DroneSecretManager.Update(secret.Name, secret.Value)
+		err = manager.GenericSecretManager.Update(secret.Name, secret.Value)
 		if err != nil {
 			return true, err
 		}
@@ -152,7 +152,7 @@ func (manager SecretManager) syncSecret(secret Secret, existingSecrets *trie.Tri
 
 	// Adding secret hash
 	log.Info().Msgf("Adding secret hash: %s", secret.HashedName())
-	_, err = manager.DroneSecretManager.Create(secret.HashedName(), "1") // Secret must has a non-empty value
+	err = manager.GenericSecretManager.Create(secret.HashedName(), "1") // Secret must has a non-empty value
 	if err != nil {
 		return true, err
 	}

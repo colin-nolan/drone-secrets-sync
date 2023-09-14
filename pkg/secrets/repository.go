@@ -13,33 +13,42 @@ type MinimalRepositoryClient interface {
 }
 
 // Secret manager for a Drone CI repository. Implemented against `DroneSecretsManager` interface.
-type RepositoryDroneSecretsManager struct {
-	Client                  MinimalRepositoryClient
-	Owner                   string
-	Repository              string
-	SecretHashConfiguration Argo2HashConfiguration
+type RepositorySecretsManager struct {
+	Client     MinimalRepositoryClient
+	Owner      string
+	Repository string
 }
 
-func (manager RepositoryDroneSecretsManager) List() ([]*drone.Secret, error) {
-	return manager.Client.SecretList(manager.Owner, manager.Repository)
+func (manager RepositorySecretsManager) List() ([]string, error) {
+	secrets, err := manager.Client.SecretList(manager.Owner, manager.Repository)
+	if err != nil {
+		return nil, err
+	}
+	secretNames := make([]string, len(secrets))
+	for i, secret := range secrets {
+		secretNames[i] = secret.Name
+	}
+	return secretNames, nil
 }
 
-func (manager RepositoryDroneSecretsManager) Create(secretName string, secretValue string) (*drone.Secret, error) {
-	return manager.Client.SecretCreate(manager.Owner, manager.Repository, &drone.Secret{
+func (manager RepositorySecretsManager) Create(secretName string, secretValue string) error {
+	_, err := manager.Client.SecretCreate(manager.Owner, manager.Repository, &drone.Secret{
 		Namespace: manager.Repository,
 		Name:      secretName,
 		Data:      secretValue,
 	})
+	return err
 }
 
-func (manager RepositoryDroneSecretsManager) Update(secretName string, secretValue string) (*drone.Secret, error) {
-	return manager.Client.SecretUpdate(manager.Owner, manager.Repository, &drone.Secret{
+func (manager RepositorySecretsManager) Update(secretName string, secretValue string) error {
+	_, err := manager.Client.SecretUpdate(manager.Owner, manager.Repository, &drone.Secret{
 		Namespace: manager.Repository,
 		Name:      secretName,
 		Data:      secretValue,
 	})
+	return err
 }
 
-func (manager RepositoryDroneSecretsManager) Delete(secretName string) error {
+func (manager RepositorySecretsManager) Delete(secretName string) error {
 	return manager.Client.SecretDelete(manager.Owner, manager.Repository, secretName)
 }
