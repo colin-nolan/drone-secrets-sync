@@ -5,14 +5,16 @@ local make_commands_fail_on_error(commands) =
 
 local bypass_git_ownership_protection_command = 'git config --global --add safe.directory "$${PWD}"';
 
+// Using arm64 not because it's required but due to CI resourcing - would ideally be "any" (https://github.com/jnohlgard/drone-yaml/tree/arch-any)
+local build_arch = 'arm64';
+
 // --------- Lint Pipeline ---------
 local lint_pipeline = {
   kind: 'pipeline',
   type: 'docker',
   name: 'lint',
   platform: {
-    // Using arm64 not because it's required but due to CI resourcing - would ideally be "any" (https://github.com/jnohlgard/drone-yaml/tree/arch-any)
-    arch: 'arm64',
+    arch: build_arch,
   },
   steps: [
     {
@@ -55,7 +57,7 @@ local test_pipeline = {
   type: 'docker',
   name: 'test',
   platform: {
-    arch: 'arm64',
+    arch: build_arch,
   },
   steps: [
     {
@@ -96,6 +98,8 @@ local supported_os_arch_pairs = [
   for arch in supported_arch_list
 ];
 
+local tag_if_not_build_architecture(architecture) = if architecture != build_arch then { when: { event: ['tag'] } } else {};
+
 local binary_build_step_name_prefix = 'build-binary_';
 local binary_build_step(os, architecture) = {
   name: '%s%s-%s' % [binary_build_step_name_prefix, os, architecture],
@@ -106,7 +110,7 @@ local binary_build_step(os, architecture) = {
     'make build GOOS=%s GOARCH=%s' % [os, architecture],
   ]),
   depends_on: [],
-};
+} + tag_if_not_build_architecture(architecture);
 
 local image_build_step_name_prefix = 'build-image_';
 local image_build_step(os, architecture) = {
@@ -118,7 +122,7 @@ local image_build_step(os, architecture) = {
     'make build-image GOOS=%s GOARCH=%s KANIKO_EXECUTOR=build/third-party/kaniko/out/executor' % [os, architecture],
   ]),
   depends_on: ['build-kaniko-tool'],
-};
+} + tag_if_not_build_architecture(architecture);
 
 local create_image_publish_step(name_postfix, tag_expression) = {
   name: 'publish-image-%s' % name_postfix,
@@ -141,7 +145,7 @@ local build_pipeline = {
   type: 'docker',
   name: 'build',
   platform: {
-    arch: 'arm64',
+    arch: build_arch,
   },
   steps:
     [binary_build_step(x[0], x[1]) for x in supported_os_arch_pairs] +
@@ -169,6 +173,9 @@ local build_pipeline = {
           'make build-image-multiarch',
         ]),
         depends_on: find_build_steps(image_build_step_name_prefix, build_pipeline.steps),
+        when: {
+          event: ['tag'],
+        },
       },
       create_image_publish_step('latest', 'latest'),
       create_image_publish_step('release', '$$(make version)'),
