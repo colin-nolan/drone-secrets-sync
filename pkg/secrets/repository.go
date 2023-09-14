@@ -5,16 +5,23 @@ import (
 )
 
 // Create interface that is a subset of `drone.Client` to make testing simpler
-type MinimalRepositoryClient interface {
-	SecretList(owner string, name string) ([]*drone.Secret, error)
-	SecretCreate(owner string, name string, secret *drone.Secret) (*drone.Secret, error)
-	SecretUpdate(owner string, name string, secret *drone.Secret) (*drone.Secret, error)
-	SecretDelete(owner string, name string, secret string) error
+type RepositoryClient interface {
+	// SecretList returns a list of all repository secrets.
+	SecretList(owner, name string) ([]*drone.Secret, error)
+
+	// SecretCreate creates a registry.
+	SecretCreate(owner, name string, secret *drone.Secret) (*drone.Secret, error)
+
+	// SecretUpdate updates a registry.
+	SecretUpdate(owner, name string, secret *drone.Secret) (*drone.Secret, error)
+
+	// SecretDelete deletes a secret.
+	SecretDelete(owner, name, secret string) error
 }
 
-// Secret manager for a Drone CI repository. Implemented against `DroneSecretsManager` interface.
+// Secret manager for a Drone CI repository. Implemented against `GenericSecretsManager` interface.
 type RepositorySecretsManager struct {
-	Client     MinimalRepositoryClient
+	Client     RepositoryClient
 	Owner      string
 	Repository string
 }
