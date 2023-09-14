@@ -12,7 +12,7 @@ var (
 		Iterations:  8,
 		Memory:      1024,
 		Parallelism: 1,
-		Length:      1,
+		Length:      8,
 	}
 )
 
