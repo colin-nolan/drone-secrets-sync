@@ -3,7 +3,7 @@
 
 ## About
 
-`drone-secrets-sync` is able to _idempotently_ synchronise [Drone CI](https://www.drone.io) secrets (currently, only repository (not organisation) secrets are supported).
+`drone-secrets-sync` is able to _idempotently_ synchronise [Drone CI](https://www.drone.io) secrets.
 
 ```shell
 # Synchronise multiple repository secrets from JSON map on stdin
@@ -25,7 +25,7 @@ The tool will output what secrets have changed, e.g.
 The Drone CI API does not provide access to secret values. Therefore, to allow the determination as to whether a secret already contains the required value, two secrets are created:
 
 1. The requested secret with the name, and value supplied.
-1. A corresponding secret with a name that contains a salted hash of the secret value, and a dummy value.
+1. A corresponding "hash secret", with a name that contains a salted hash of the secret value.
 
 ```shell
 drone secret ls octocat/hello-world
@@ -51,7 +51,7 @@ make install
 
 ## Usage
 
-The tool uses the [Drone API](https://docs.drone.io/api/overview) via the official [drone-go](https://github.com/drone/drone-go) library. It requires `DRONE_TOKEN` and `DRONE_SERVER` environment variables to be setup, e.g.
+The tool uses the [Drone API](https://docs.drone.io/api/overview) via the official [drone-go](https://github.com/drone/drone-go) library. It requires `DRONE_TOKEN` and `DRONE_SERVER` environment variables to be set, e.g.
 
 ```shell
 # Configure environment - see: https://docs.drone.io/cli/configure
@@ -119,13 +119,13 @@ To run after building:
 #### Docker Image
 
 ```shell
-make build-container-and-load
+make build-image-and-load
 ```
 
 To run after building:
 
 ```shell
-docker run --rm --pull never -e DRONE_SERVER -e DRONE_TOKEN "colin-nolan/drone-secret:$(make version)" --help
+docker run --rm --pull never -e DRONE_SERVER -e DRONE_TOKEN "colin-nolan/drone-secrets-sync:$(make version)" --help
 ```
 
 ### Test

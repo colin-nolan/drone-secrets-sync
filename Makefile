@@ -13,10 +13,10 @@ ENTRYPOINT := cmd/cli/*.go
 TARGET_ARCH := amd64 arm64 arm
 TARGET_OS := linux 
 
-GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
-MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
-JSONNET_FILES := $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
-IMAGE_IMAGE_FILES := $(shell find $(RELEASE_DIRECTORY) -type f -name '*.tar')
+GO_FILES = $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
+MARKDOWN_FILES = $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
+JSONNET_FILES = $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
+IMAGE_IMAGE_FILES = $(shell find $(RELEASE_DIRECTORY) -type f -name '*.tar')
 
 INSTALL_PATH := /usr/local/bin/$(BINARY_NAME)
 
@@ -61,7 +61,7 @@ uninstall:
 
 clean:
 	go clean
-	rm -rf $(RELEASE_DIRECTORY)
+	rm -rf $(RELEASE_DIRECTORY) bin
 	rm -f coverage.out output.log
 
 lint: lint-code lint-markdown lint-jsonnet

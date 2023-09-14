@@ -59,7 +59,7 @@ local test_pipeline = {
   },
   steps: [
     {
-      name: 'test',
+      name: 'unit-test',
       image: 'golang:alpine',
       commands: make_commands_fail_on_error([
         'apk add --update-cache gcc git libc-dev make',
@@ -82,7 +82,7 @@ local test_pipeline = {
           from_secret: 'codecov_token',
         },
       },
-      depends_on: ['test'],
+      depends_on: ['unit-test'],
     },
   ],
 };
@@ -126,7 +126,7 @@ local create_image_publish_step(name_postfix, tag_expression) = {
   commands: make_commands_fail_on_error([
     'apk --update-cache add git go make skopeo',
     bypass_git_ownership_protection_command,
-    'skopeo copy --all dir:build/release/4974ff3/multiarch docker://colinnolan/drone-secrets-sync:%s' % tag_expression,
+    'skopeo copy --all dir:build/release/$$(make version)/multiarch docker://colinnolan/drone-secrets-sync:%s' % tag_expression,
   ]),
   when: {
     event: ['tag'],
@@ -135,7 +135,6 @@ local create_image_publish_step(name_postfix, tag_expression) = {
 };
 
 local find_build_steps(step_name_prefix, steps) = std.filter(function(name) std.startsWith(name, step_name_prefix), std.map(function(step) step.name, steps));
-
 
 local build_pipeline = {
   kind: 'pipeline',
@@ -172,7 +171,7 @@ local build_pipeline = {
         depends_on: find_build_steps(image_build_step_name_prefix, build_pipeline.steps),
       },
       create_image_publish_step('latest', 'latest'),
-      create_image_publish_step('release-version', '$$(make version)'),
+      create_image_publish_step('release', '$$(make version)'),
       {
         name: 'link-latest',
         image: 'alpine',
