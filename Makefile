@@ -1,15 +1,20 @@
-VERSION = $(shell git describe --tags --exact-match HEAD 2> /dev/null || git rev-parse --short HEAD)
+ifeq ($(origin DRONE_TAG), environment)
+    VERSION := $(DRONE_TAG)
+else
+    VERSION := $(shell git describe --tags --exact-match HEAD 2> /dev/null || git rev-parse --short HEAD)
+endif
 
-BUILD_DIRECTORY = build
-RELEASE_DIRECTORY= $(BUILD_DIRECTORY)/release/$(VERSION)
+BUILD_DIRECTORY := build
+RELEASE_DIRECTORY := $(BUILD_DIRECTORY)/release/$(VERSION)
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 BINARY_NAME := drone-secrets-sync
-BINARY_OUTPUT_LOCATION = $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(GOOS)-$(GOARCH)
+BINARY_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(GOOS)-$(GOARCH)
 BINARY_OUTPUT_BIN_COPY_LOCATION := bin/$(BINARY_NAME)
 ENTRYPOINT := $(wildcard cmd/cli/*.go)
 
+# TODO: consider combining with GOOS and GOARCH (see issue with `build-image-multiarch`)
 TARGET_ARCH ?= amd64 arm64 arm
 TARGET_OS ?= linux
 
@@ -21,9 +26,9 @@ INSTALL_PATH = /usr/local/bin/$(BINARY_NAME)
 
 KANIKO_EXECUTOR ?= docker run --rm -v ${PWD}:${PWD} -w ${PWD} gcr.io/kaniko-project/executor:latest
 DOCKER_IMAGE_NAME := colin-nolan/$(BINARY_NAME):$(VERSION)
-IMAGE_OUTPUT_LOCATION = $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(GOOS)-$(GOARCH).tar
-ALL_IMAGE_OUTPUT_LOCATIONS = $(foreach arch,$(TARGET_ARCH),$(foreach os,$(TARGET_OS),$(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(os)-$(arch).tar))
-MULTIARCH_OUTPUT_LOCATION = $(RELEASE_DIRECTORY)/multiarch
+IMAGE_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(GOOS)-$(GOARCH).tar
+ALL_IMAGE_OUTPUT_LOCATIONS := $(foreach arch,$(TARGET_ARCH),$(foreach os,$(TARGET_OS),$(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(os)-$(arch).tar))
+MULTIARCH_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/multiarch
 
 all: build
 
