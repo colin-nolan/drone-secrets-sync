@@ -130,8 +130,17 @@ local create_image_publish_step(name_postfix, tag_expression) = {
   commands: make_commands_fail_on_error([
     'apk --update-cache add git go make skopeo',
     bypass_git_ownership_protection_command,
+    'echo "$${DOCKER_TOKEN}" | docker login --password-stdin --username "$${DOCKER_USERNAME}"',
     'skopeo copy --all dir:build/release/$$(make version)/multiarch docker://colinnolan/drone-secrets-sync:%s' % tag_expression,
   ]),
+  environment: {
+    DOCKER_USERNAME: {
+      from_secret: 'dockerhub_username',
+    },
+    DOCKER_TOKEN: {
+      from_secret: 'dockerhub_token',
+    },
+  },
   when: {
     event: ['tag'],
   },
