@@ -27,7 +27,6 @@ for container_image in ${image_tarball_locations}; do \
 
     skopeo_manifest=$(skopeo inspect "dir:${extract_directory}")
     manifest_digest=$(jq -r '.Digest' <<< "${skopeo_manifest}" | cut -d: -f2)
-    # TODO: might need to so something with "size"
     manifest=$(jq -s '{
             "mediaType": .[1].mediaType,
             "digest": .[0].Digest,
