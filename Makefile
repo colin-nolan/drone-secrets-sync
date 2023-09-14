@@ -1,46 +1,66 @@
-VERSION = $(shell git describe --tags --exact-match HEAD 2> /dev/null || git rev-parse --short HEAD)
+ifeq ($(origin DRONE_TAG), environment)
+    VERSION := $(DRONE_TAG)
+else
+    VERSION ?= $(shell git describe --tags --exact-match HEAD 2> /dev/null || git rev-parse --short HEAD)
+endif
 
 BUILD_DIRECTORY := build
-RELEASE_DIRECTORY:= $(BUILD_DIRECTORY)/release/$(VERSION)
+RELEASE_DIRECTORY := $(BUILD_DIRECTORY)/release/$(VERSION)
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 BINARY_NAME := drone-secrets-sync
 BINARY_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(GOOS)-$(GOARCH)
-ENTRYPOINT := cmd/cli/*.go
+BINARY_OUTPUT_BIN_COPY_LOCATION := bin/$(BINARY_NAME)
+ENTRYPOINT := $(wildcard cmd/cli/*.go)
 
-TARGET_ARCH := amd64 arm64 arm
-TARGET_OS := linux 
+# TODO: consider combining with GOOS and GOARCH (see issue with `build-image-multiarch`)
+TARGET_ARCH ?= amd64 arm64 arm
+TARGET_OS ?= linux
 
 GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
 MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
 JSONNET_FILES := $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
 
-INSTALL_PATH := /usr/local/bin/$(BINARY_NAME)
+INSTALL_PATH = /usr/local/bin/$(BINARY_NAME)
 
 KANIKO_EXECUTOR ?= docker run --rm -v ${PWD}:${PWD} -w ${PWD} gcr.io/kaniko-project/executor:latest
 DOCKER_IMAGE_NAME := colin-nolan/$(BINARY_NAME):$(VERSION)
-CONTAINER_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/container_$(GOOS)-$(GOARCH).tar
+IMAGE_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(GOOS)-$(GOARCH).tar
+ALL_IMAGE_OUTPUT_LOCATIONS := $(foreach arch,$(TARGET_ARCH),$(foreach os,$(TARGET_OS),$(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(os)-$(arch).tar))
+MULTIARCH_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/multiarch
 
 all: build
 
-build: $(BINARY_OUTPUT_LOCATION)
-$(BINARY_OUTPUT_LOCATION): $(GO_FILES)
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BINARY_OUTPUT_LOCATION) $(ENTRYPOINT)
+build: $(BINARY_OUTPUT_LOCATION) $(BINARY_OUTPUT_BIN_COPY_LOCATION)
+$(BINARY_OUTPUT_LOCATION) $(BINARY_OUTPUT_BIN_COPY_LOCATION): $(GO_FILES)
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-s -w -X main.version=$(VERSION)" -o "$(BINARY_OUTPUT_LOCATION)" $(ENTRYPOINT)
+	mkdir -p $(shell dirname "$(BINARY_OUTPUT_BIN_COPY_LOCATION)")
+	cp "$(BINARY_OUTPUT_LOCATION)" "$(BINARY_OUTPUT_BIN_COPY_LOCATION)"
 
-build-container: $(CONTAINER_OUTPUT_LOCATION) 
-$(CONTAINER_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
-	mkdir -p $$(dirname $(CONTAINER_OUTPUT_LOCATION))
+build-image: $(IMAGE_OUTPUT_LOCATION) 
+$(IMAGE_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
+	mkdir -p $$(dirname $(IMAGE_OUTPUT_LOCATION))
 	# Must work both containerised and not
 	$(KANIKO_EXECUTOR) \
 		--custom-platform=$(GOOS)/$(GOARCH) \
 		--no-push \
 		--dockerfile Dockerfile \
 		--build-arg VERSION=$(VERSION) \
-		--tar-path $(CONTAINER_OUTPUT_LOCATION) \
+		--tar-path $(IMAGE_OUTPUT_LOCATION) \
 		--destination $(DOCKER_IMAGE_NAME) \
 		--context ${PWD} \
 		>&2
+
+build-image-and-load: build-image
+	docker load -i $(IMAGE_OUTPUT_LOCATION)
+
+# XXX: this rule does not align with `build-image`, which defines how to build only one image. There is no
+#	   multi-image build rule, which will lead to `make` complaining of a target issue if one of the images
+#	   does not exist. To get around this, all `build` and `build-image` need to be changed to have multi-os/arch support.
+build-image-multiarch: $(MULTIARCH_OUTPUT_LOCATION)
+$(MULTIARCH_OUTPUT_LOCATION): $(ALL_IMAGE_OUTPUT_LOCATIONS)
+	scripts/create-multiarch-image.sh $(MULTIARCH_OUTPUT_LOCATION) $(ALL_IMAGE_OUTPUT_LOCATIONS)
 
 install: build
 	cp $(BINARY_OUTPUT_LOCATION) $(INSTALL_PATH)
@@ -50,7 +70,7 @@ uninstall:
 
 clean:
 	go clean
-	rm -rf $(BUILD_DIRECTORY)
+	rm -rf $(RELEASE_DIRECTORY) bin
 	rm -f coverage.out output.log
 
 lint: lint-code lint-markdown lint-jsonnet
@@ -86,4 +106,4 @@ test:
 version:
 	@echo $(VERSION)
 
-.PHONY: all build build-container install uninstall clean lint lint-code lint-markdown lint-jsonnet format fmt format-code format-markdown format-jsonnet test
+.PHONY: all build build-image build-image-multiarch install uninstall clean lint lint-code lint-markdown lint-jsonnet format fmt format-code format-markdown format-jsonnet test
