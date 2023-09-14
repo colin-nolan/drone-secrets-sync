@@ -6,6 +6,11 @@ output_directory="$1"
 shift
 image_tarball_locations=$@
 
+if [[ -z "${image_tarball_locations}" ]]; then
+    >&2 echo "No image tarballs paths provided"
+    exit 1
+fi
+
 manifest_location="${output_directory}/manifest.json"
 
 rm -rf "${output_directory}"
@@ -42,5 +47,4 @@ for container_image in ${image_tarball_locations}; do \
     find "${extract_directory}" -type f ! -name version -exec mv {} "${output_directory}" \; 
 done
 
->&2 echo "Complete!"
->&2 echo "You can now publish the multiarch image using: skopeo copy --all dir:${output_directory} docker://colinnolan/drone-secrets-sync"
+>&2 echo "Complete - you can now publish the multiarch image using: skopeo copy --all dir:${output_directory} docker://colinnolan/drone-secrets-sync"

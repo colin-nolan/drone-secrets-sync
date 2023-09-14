@@ -10,8 +10,8 @@ BINARY_OUTPUT_LOCATION = $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(GOOS)-$(GOARCH)
 BINARY_OUTPUT_BIN_COPY_LOCATION := bin/$(BINARY_NAME)
 ENTRYPOINT := $(wildcard cmd/cli/*.go)
 
-TARGET_ARCH := amd64 arm64 arm
-TARGET_OS := linux 
+TARGET_ARCH ?= amd64 arm64 arm
+TARGET_OS ?= linux
 
 GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
 MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
@@ -21,8 +21,9 @@ INSTALL_PATH = /usr/local/bin/$(BINARY_NAME)
 
 KANIKO_EXECUTOR ?= docker run --rm -v ${PWD}:${PWD} -w ${PWD} gcr.io/kaniko-project/executor:latest
 DOCKER_IMAGE_NAME := colin-nolan/$(BINARY_NAME):$(VERSION)
-IMAGE_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(GOOS)-$(GOARCH).tar
-MULTIARCH_IMAGES_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/multiarch
+IMAGE_OUTPUT_LOCATION = $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(GOOS)-$(GOARCH).tar
+ALL_IMAGE_OUTPUT_LOCATIONS = $(foreach arch,$(TARGET_ARCH),$(foreach os,$(TARGET_OS),$(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(os)-$(arch).tar))
+MULTIARCH_OUTPUT_LOCATION = $(RELEASE_DIRECTORY)/multiarch
 
 all: build
 
@@ -49,9 +50,12 @@ $(IMAGE_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
 build-image-and-load: build-image
 	docker load -i $(IMAGE_OUTPUT_LOCATION)
 
-build-image-multiarch: IMAGE_IMAGE_FILES = $(shell find $(RELEASE_DIRECTORY) -type f -name '*.tar')
-build-image-multiarch: $(IMAGE_IMAGE_FILES)
-	scripts/create-multiarch-image.sh $(MULTIARCH_IMAGES_OUTPUT_LOCATION) $(IMAGE_IMAGE_FILES)
+# XXX: this rule does not align with `build-image`, which defines how to build only one image. There is no
+#	   multi-image build rule, which will lead to `make` complaining of a target issue if one of the images
+#	   does not exist. To get around this, all `build` and `build-image` need to be changed to have multi-os/arch support.
+build-image-multiarch: $(MULTIARCH_OUTPUT_LOCATION)
+$(MULTIARCH_OUTPUT_LOCATION): $(ALL_IMAGE_OUTPUT_LOCATIONS)
+	scripts/create-multiarch-image.sh $(MULTIARCH_OUTPUT_LOCATION) $(ALL_IMAGE_OUTPUT_LOCATIONS)
 
 install: build
 	cp $(BINARY_OUTPUT_LOCATION) $(INSTALL_PATH)
