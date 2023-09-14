@@ -113,13 +113,13 @@ make build
 To run after building:
 
 ```shell
-./build/drone-secrets-sync --help
+./bin/drone-secrets-sync --help
 ```
 
 #### Docker Image
 
 ```shell
-docker build -t colin-nolan/drone-secret:$(make version) .
+make build-container-and-load
 ```
 
 To run after building:

@@ -101,8 +101,9 @@ local binary_build_step(os, architecture) = {
   depends_on: [],
 };
 
+local container_build_step_name_prefix = "build-container_";
 local container_build_step(os, architecture) = {
-  name: 'build-container_%s-%s' % [os, architecture],
+  name: '%s%s-%s' % [container_build_step_name_prefix, os, architecture],
   image: 'golang:alpine',
   commands: makeCommandsFailOnError([
     'apk add --update-cache git make',
@@ -149,20 +150,33 @@ local buildPipeline = {
         ]),
         depends_on: [],
       },
+      // FIXME: dependecny
+      // {
+      //   name: 'publish-github-release',
+      //   image: 'plugins/github-release:latest',
+      //   settings: {
+      //     api_key: {
+      //       from_secret: 'github_release_token',
+      //     },
+      //     files: ['build/release/latest/*'],
+      //   },
+      //   when: {
+      //     event: ['tag'],
+      //   },
+      //   depends_on: std.filter(function(name) name != self.name, std.map(function(step) step.name, buildPipeline.steps)),
+      // },
+      // TODO: make a common build multiarch step
       {
-        name: 'publish-github-release',
-        image: 'plugins/github-release:latest',
-        settings: {
-          api_key: {
-            from_secret: 'github_release_token',
-          },
-          files: ['build/release/latest/*'],
-        },
-        when: {
-          event: ['tag'],
-        },
-        depends_on: std.filter(function(name) name != self.name, std.map(function(step) step.name, buildPipeline.steps)),
-      },
+        name: 'publish-dockerhub-latest',
+        image: 'alpine',
+        commands: makeCommandsFailOnError([
+          'apk --update-cache add bash git go jq make skopeo',
+          'git config --global --add safe.directory "$${PWD}"',
+          'make build-container-multiarch',
+          'skopeo copy --all dir:build/release/$$(make version)/multiarch docker://colinnolan/drone-secrets-sync:latest'
+        ]),
+        depends_on: std.filter(function(name) std.startsWith(name, container_build_step_name_prefix), std.map(function(step) step.name, buildPipeline.steps))
+      }
     ],
 };
 

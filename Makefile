@@ -7,6 +7,7 @@ GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 BINARY_NAME := drone-secrets-sync
 BINARY_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(GOOS)-$(GOARCH)
+BINARY_OUTPUT_BIN_COPY_LOCATION := bin/$(BINARY_NAME)
 ENTRYPOINT := cmd/cli/*.go
 
 TARGET_ARCH := amd64 arm64 arm
@@ -15,18 +16,22 @@ TARGET_OS := linux
 GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
 MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
 JSONNET_FILES := $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
+CONTAINER_IMAGE_FILES := $(shell find $(RELEASE_DIRECTORY) -type f -name '*.tar')
 
 INSTALL_PATH := /usr/local/bin/$(BINARY_NAME)
 
 KANIKO_EXECUTOR ?= docker run --rm -v ${PWD}:${PWD} -w ${PWD} gcr.io/kaniko-project/executor:latest
 DOCKER_IMAGE_NAME := colin-nolan/$(BINARY_NAME):$(VERSION)
-CONTAINER_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/container_$(GOOS)-$(GOARCH).tar
+CONTAINER_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/$(BINARY_NAME)-container_$(GOOS)-$(GOARCH).tar
+MULTIARCH_CONTAINERS_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/multiarch
 
 all: build
 
-build: $(BINARY_OUTPUT_LOCATION)
+build: $(BINARY_OUTPUT_LOCATION) 
 $(BINARY_OUTPUT_LOCATION): $(GO_FILES)
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-s -w -X main.version=$(VERSION)" -o $(BINARY_OUTPUT_LOCATION) $(ENTRYPOINT)
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags "-s -w -X main.version=$(VERSION)" -o "$(BINARY_OUTPUT_LOCATION)" $(ENTRYPOINT)
+	mkdir -p $(shell dirname "$(BINARY_OUTPUT_BIN_COPY_LOCATION)")
+	cp "$(BINARY_OUTPUT_LOCATION)" "$(BINARY_OUTPUT_BIN_COPY_LOCATION)"
 
 build-container: $(CONTAINER_OUTPUT_LOCATION) 
 $(CONTAINER_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
@@ -41,6 +46,12 @@ $(CONTAINER_OUTPUT_LOCATION): $(GO_FILES) Dockerfile .dockerignore
 		--destination $(DOCKER_IMAGE_NAME) \
 		--context ${PWD} \
 		>&2
+
+build-container-and-load: build-container
+	docker load -i $(CONTAINER_OUTPUT_LOCATION)
+
+build-container-multiarch: $(CONTAINER_IMAGE_FILES)
+	scripts/create-multiarch-container.sh $(MULTIARCH_CONTAINERS_OUTPUT_LOCATION) $(CONTAINER_IMAGE_FILES)
 
 install: build
 	cp $(BINARY_OUTPUT_LOCATION) $(INSTALL_PATH)
@@ -86,4 +97,4 @@ test:
 version:
 	@echo $(VERSION)
 
-.PHONY: all build build-container install uninstall clean lint lint-code lint-markdown lint-jsonnet format fmt format-code format-markdown format-jsonnet test
+.PHONY: all build build-container build-container-multiarch install uninstall clean lint lint-code lint-markdown lint-jsonnet format fmt format-code format-markdown format-jsonnet test
