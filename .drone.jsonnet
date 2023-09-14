@@ -128,9 +128,9 @@ local create_image_publish_step(name_postfix, tag_expression) = {
   name: 'publish-image-%s' % name_postfix,
   image: 'alpine',
   commands: make_commands_fail_on_error([
-    'apk --update-cache add git go make skopeo',
+    'apk --update-cache add docker git go make skopeo',
     bypass_git_ownership_protection_command,
-    'echo "$${DOCKER_TOKEN}" | docker login --password-stdin --username "$${DOCKER_USERNAME}"',
+    'echo "$${DOCKER_TOKEN}" | docker login --password-stdin --username "$${DOCKER_USERNAME}"', 
     'skopeo copy --all dir:build/release/$$(make version)/multiarch docker://colinnolan/drone-secrets-sync:%s' % tag_expression,
   ]),
   environment: {
