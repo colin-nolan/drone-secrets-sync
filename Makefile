@@ -104,9 +104,9 @@ test:
 	rm -rf .coverage
 	make test-unit
 	make test-system
-	# TODO: The system test paths are absolute file paths opposed to package paths. It's not clear
-	#       how to correct these. However, codecov.io merges them correctly so not spending any longer
-	#       now trying to fix this so it works locally
+	@# TODO: The system test paths are absolute file paths opposed to package paths. It's not clear
+	@#       how to correct these. However, codecov.io merges them correctly so not spending any longer
+	@#       now trying to fix this so it works locally
 	go tool covdata textfmt -i=.coverage/unit,.coverage/system -o .coverage/coverage.out
 	go tool cover -html .coverage/coverage.out -o .coverage/coverage.html
 
