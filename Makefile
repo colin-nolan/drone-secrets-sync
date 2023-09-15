@@ -101,10 +101,29 @@ format-jsonnet:
 	done			
 
 test:
-	CGO_ENABLED=1 go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
-	go tool cover -html coverage.out -o coverage.html
+	rm -rf .coverage
+	make test-unit
+	make test-system
+	# TODO: The system test paths are absolute file paths opposed to package paths. It's not clear
+	#       how to correct these. However, codecov.io merges them correctly so not spending any longer
+	#       now trying to fix this so it works locally
+	go tool covdata textfmt -i=.coverage/unit,.coverage/system -o .coverage/coverage.out
+	go tool cover -html .coverage/coverage.out -o .coverage/coverage.html
+
+test-unit:
+	rm -rf .coverage/unit
+	mkdir -p .coverage/unit
+	CGO_ENABLED=1 go test -v -cover -race ./... -args -test.gocoverdir="$${PWD}/.coverage/unit"
+
+test-system:
+	go build -cover -race -o build/drone-secrets-sync-coveraged $(ENTRYPOINT)
+
+	rm -rf .coverage/system
+	mkdir -p .coverage/system
+
+	GOCOVERDIR=.coverage/system SUT=build/drone-secrets-sync-coveraged	test/bats/bin/bats test/system/tests.bats
 
 version:
 	@echo $(VERSION)
 
-.PHONY: all build build-image build-image-multiarch install uninstall clean lint lint-code lint-markdown lint-jsonnet format fmt format-code format-markdown format-jsonnet test
+.PHONY: all build build-image build-image-multiarch install uninstall clean lint lint-code lint-markdown lint-jsonnet format fmt format-code format-markdown format-jsonnet test test-unit test-system
