@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -15,63 +13,41 @@ import (
 
 func main() {
 	configuration := ReadCliArgs()
-	secrets := readSecrets(configuration.SourceFile, configuration.HashConfiguration)
-	credential := readCredential()
+	secretsToSync := ReadSecrets(configuration.SecretsFile, configuration.HashConfiguration)
+	credential := ReadCredential()
 
 	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
 
-	updatedSecrets := syncSecrets(configuration.RepositoryOwner(), configuration.RepositoryName(), secrets, credential)
-	output(updatedSecrets)
-}
-
-func syncSecrets(repositoryOwner string, repositoryName string, secretsToSync []secrets.Secret, credential client.Credential) []string {
-	client := client.CreateClient(credential)
-
-	repositorySecretManager := secrets.RepositorySecretManager{
-		Client: client,
-		Owner:  repositoryOwner,
-		Name:   repositoryName,
-	}
-
-	updatedSecrets, err := repositorySecretManager.SyncSecrets(secretsToSync, false)
+	syncedSecretManager := createSyncedSecretManager(credential, configuration)
+	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, false)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error syncing secrets")
 	}
 
-	return updatedSecrets
+	output(updatedSecrets)
 }
 
-func readSecrets(sourceFile string, hashConfiguration secrets.Argo2HashConfiguration) []secrets.Secret {
-	var inputData []byte
-	var err error
-	if sourceFile == "-" {
-		inputData, err = io.ReadAll(os.Stdin)
+func createSyncedSecretManager(credential client.Credential, configuration Configuration) secrets.SyncedSecretManager {
+	client := client.CreateClient(credential)
+
+	var genericSecretsManager secrets.GenericSecretsManager
+	if configuration.RepositoryConfiguration != nil {
+		genericSecretsManager = secrets.RepositorySecretsManager{
+			Client: client,
+			// XXX: use on a repository in a namespace not owned by the same user has not been tested
+			Owner:     configuration.RepositoryConfiguration.RepositoryNamespace(),
+			Namespace: configuration.RepositoryConfiguration.RepositoryNamespace(),
+			Name:      configuration.RepositoryConfiguration.RepositoryName(),
+		}
 	} else {
-		inputData, err = os.ReadFile(sourceFile)
-	}
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error reading from stdin")
-	}
-
-	var secretValueMap map[string]interface{}
-	err = json.Unmarshal([]byte(inputData), &secretValueMap)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error parsing JSON from stdin")
+		genericSecretsManager = secrets.OrganisationSecretsManager{
+			Client:    client,
+			Namespace: configuration.OrganisationConfiguration.Namespace,
+		}
 	}
 
-	var secretValuePairs []secrets.Secret
-	for key, value := range secretValueMap {
-		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string), hashConfiguration))
-	}
-	return secretValuePairs
-}
+	return secrets.SyncedSecretManager{GenericSecretManager: genericSecretsManager}
 
-func readCredential() client.Credential {
-	credential, err := client.GetCredentialFromEnv()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting credentials from environment")
-	}
-	return credential
 }
 
 func output(updatedSecrets []string) {
