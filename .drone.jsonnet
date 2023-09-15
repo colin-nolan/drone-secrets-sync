@@ -60,11 +60,41 @@ local test_pipeline = {
   },
   steps: [
     {
-      name: 'unit-test',
+      name: 'unit-tests',
       image: 'golang:alpine',
       commands: create_setup_commands(['gcc', 'libc-dev']) + [
-        'make test',
+        'make test-unit',
       ],
+      depends_on: [],
+    },
+    {
+      name: 'system-tests',
+      image: 'golang:alpine',
+      commands: create_setup_commands(['bash', 'curl', 'gcc', ' jq', 'libc-dev']) + [
+        'curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx && mv drone /usr/local/bin',
+        'git submodule update --init --recursive',
+        'make test-system',
+      ],
+      environment: {
+        DRONE_TEST_SERVER: {
+          from_secret: 'drone_test_server',
+        },
+        DRONE_TEST_TOKEN: {
+          from_secret: 'drone_test_token',
+        },
+        DRONE_TEST_REPOSITORY: {
+          from_secret: 'drone_test_repository',
+        },
+      },
+      depends_on: [],
+    },
+    {
+      name: 'compile-coverage-report',
+      image: 'golang:alpine',
+      commands: create_setup_commands() + [
+        'make test-coverage-report',
+      ],
+      depends_on: ['unit-tests', 'system-tests'],
     },
     {
       name: 'publish-coverage',
@@ -81,7 +111,7 @@ local test_pipeline = {
           from_secret: 'codecov_token',
         },
       },
-      depends_on: ['unit-test'],
+      depends_on: ['compile-coverage-report'],
     },
   ],
 };
