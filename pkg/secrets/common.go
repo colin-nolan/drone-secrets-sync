@@ -23,7 +23,7 @@ type SyncedSecretManager struct {
 func (manager SyncedSecretManager) ListSecrets() ([]MaskedSecret, error) {
 	secretNames, err := manager.GenericSecretManager.List()
 	if err != nil {
-		return nil, fmt.Errorf("error getting secrets for")
+		return nil, fmt.Errorf("error getting secrets: %w", err)
 	}
 
 	var secrets []MaskedSecret

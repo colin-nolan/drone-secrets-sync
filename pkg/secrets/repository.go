@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/drone/drone-go/drone"
+	"github.com/rs/zerolog/log"
 )
 
 // Create interface that is a subset of `drone.Client` to make testing simpler
@@ -24,7 +25,6 @@ type RepositoryClient interface {
 // Secret manager for a Drone CI repository. Implemented against `GenericSecretsManager` interface.
 type RepositorySecretsManager struct {
 	Client    RepositoryClient
-	Owner     string
 	Namespace string
 	Name      string
 }
@@ -34,7 +34,8 @@ func (manager RepositorySecretsManager) Repository() string {
 }
 
 func (manager RepositorySecretsManager) List() ([]string, error) {
-	secrets, err := manager.Client.SecretList(manager.Owner, manager.Repository())
+	log.Debug().Msgf("Getting list of secrets for repository: %s", manager.Repository())
+	secrets, err := manager.Client.SecretList(manager.Namespace, manager.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,8 @@ func (manager RepositorySecretsManager) List() ([]string, error) {
 }
 
 func (manager RepositorySecretsManager) Create(secretName string, secretValue string) error {
-	_, err := manager.Client.SecretCreate(manager.Owner, manager.Repository(), &drone.Secret{
+	log.Debug().Msgf("Creating secret in repository: %s:%s", manager.Repository(), secretName)
+	_, err := manager.Client.SecretCreate(manager.Namespace, manager.Name, &drone.Secret{
 		Namespace: manager.Namespace,
 		Name:      secretName,
 		Data:      secretValue,
@@ -55,7 +57,8 @@ func (manager RepositorySecretsManager) Create(secretName string, secretValue st
 }
 
 func (manager RepositorySecretsManager) Update(secretName string, secretValue string) error {
-	_, err := manager.Client.SecretUpdate(manager.Owner, manager.Repository(), &drone.Secret{
+	log.Debug().Msgf("Updating secret in repository: %s:%s", manager.Repository(), secretName)
+	_, err := manager.Client.SecretUpdate(manager.Namespace, manager.Name, &drone.Secret{
 		Namespace: manager.Namespace,
 		Name:      secretName,
 		Data:      secretValue,
@@ -64,5 +67,6 @@ func (manager RepositorySecretsManager) Update(secretName string, secretValue st
 }
 
 func (manager RepositorySecretsManager) Delete(secretName string) error {
-	return manager.Client.SecretDelete(manager.Owner, manager.Repository(), secretName)
+	log.Debug().Msgf("Deleting secret in repository: %s:%s", manager.Repository(), secretName)
+	return manager.Client.SecretDelete(manager.Namespace, manager.Name, secretName)
 }

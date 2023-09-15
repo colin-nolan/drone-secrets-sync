@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"github.com/drone/drone-go/drone"
+	"github.com/rs/zerolog/log"
 )
 
 // Create interface that is a subset of `drone.Client` to make testing simpler
@@ -26,6 +27,7 @@ type OrganisationSecretsManager struct {
 }
 
 func (manager OrganisationSecretsManager) List() ([]string, error) {
+	log.Debug().Msgf("Getting list of secrets for organisation: %s", manager.Namespace)
 	secrets, err := manager.Client.OrgSecretList(manager.Namespace)
 	if err != nil {
 		return nil, err
@@ -38,6 +40,7 @@ func (manager OrganisationSecretsManager) List() ([]string, error) {
 }
 
 func (manager OrganisationSecretsManager) Create(secretName string, secretValue string) error {
+	log.Debug().Msgf("Creating secret in organisation: %s:%s", manager.Namespace, secretName)
 	_, err := manager.Client.OrgSecretCreate(manager.Namespace, &drone.Secret{
 		Namespace: manager.Namespace,
 		Name:      secretName,
@@ -47,6 +50,7 @@ func (manager OrganisationSecretsManager) Create(secretName string, secretValue 
 }
 
 func (manager OrganisationSecretsManager) Update(secretName string, secretValue string) error {
+	log.Debug().Msgf("Updating secret in organisation: %s:%s", manager.Namespace, secretName)
 	_, err := manager.Client.OrgSecretUpdate(manager.Namespace, &drone.Secret{
 		Namespace: manager.Namespace,
 		Name:      secretName,
@@ -56,5 +60,6 @@ func (manager OrganisationSecretsManager) Update(secretName string, secretValue 
 }
 
 func (manager OrganisationSecretsManager) Delete(secretName string) error {
+	log.Debug().Msgf("Deleting secret in organisation: %s:%s", manager.Namespace, secretName)
 	return manager.Client.OrgSecretDelete(manager.Namespace, secretName)
 }

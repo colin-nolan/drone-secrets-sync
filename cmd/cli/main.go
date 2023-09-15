@@ -13,10 +13,10 @@ import (
 
 func main() {
 	configuration := ReadCliArgs()
+	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
+
 	secretsToSync := ReadSecrets(configuration.SecretsFile, configuration.HashConfiguration)
 	credential := ReadCredential()
-
-	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
 
 	syncedSecretManager := createSyncedSecretManager(credential, configuration)
 	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, false)
@@ -33,9 +33,7 @@ func createSyncedSecretManager(credential client.Credential, configuration Confi
 	var genericSecretsManager secrets.GenericSecretsManager
 	if configuration.RepositoryConfiguration != nil {
 		genericSecretsManager = secrets.RepositorySecretsManager{
-			Client: client,
-			// XXX: use on a repository in a namespace not owned by the same user has not been tested
-			Owner:     configuration.RepositoryConfiguration.RepositoryNamespace(),
+			Client:    client,
 			Namespace: configuration.RepositoryConfiguration.RepositoryNamespace(),
 			Name:      configuration.RepositoryConfiguration.RepositoryName(),
 		}
