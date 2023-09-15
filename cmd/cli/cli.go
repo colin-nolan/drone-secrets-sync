@@ -1,48 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
+	"io"
+	"os"
 
 	"github.com/alexflint/go-arg"
+	"github.com/colin-nolan/drone-secrets-sync/pkg/client"
 	"github.com/colin-nolan/drone-secrets-sync/pkg/secrets"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
-
-type Configuration struct {
-	SecretsFile               string
-	LogLevel                  zerolog.Level
-	HashConfiguration         secrets.Argo2HashConfiguration
-	RepositoryConfiguration   *RepositoryConfiguration
-	OrganisationConfiguration *OrganisationConfiguration
-}
-
-type RepositoryConfiguration struct {
-	Repository string
-}
-
-func (configuration *RepositoryConfiguration) RepositoryNamespace() string {
-	namespace, _ := parseRepository(configuration.Repository)
-	return namespace
-}
-
-func (configuration *RepositoryConfiguration) RepositoryName() string {
-	_, name := parseRepository(configuration.Repository)
-	return name
-}
-
-type OrganisationConfiguration struct {
-	Namespace string
-}
-
-func parseRepository(repository string) (namespace string, name string) {
-	repositorySplit := strings.Split(repository, "/")
-	if len(repositorySplit) != 2 {
-		log.Fatal().Msg("Repository must be in the format <namespace>/<name>")
-	}
-	return repositorySplit[0], repositorySplit[1]
-}
 
 // To be set on compilation (should not be `const`)
 var version = "unknown"
@@ -103,4 +72,37 @@ func ReadCliArgs() Configuration {
 		parser.Fail("No subcommand specified")
 	}
 	return configuration
+}
+
+func ReadSecrets(sourceFile string, hashConfiguration secrets.Argo2HashConfiguration) []secrets.Secret {
+	var inputData []byte
+	var err error
+	if sourceFile == "-" {
+		inputData, err = io.ReadAll(os.Stdin)
+	} else {
+		inputData, err = os.ReadFile(sourceFile)
+	}
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error reading from stdin")
+	}
+
+	var secretValueMap map[string]interface{}
+	err = json.Unmarshal([]byte(inputData), &secretValueMap)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error parsing JSON from stdin")
+	}
+
+	var secretValuePairs []secrets.Secret
+	for key, value := range secretValueMap {
+		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string), hashConfiguration))
+	}
+	return secretValuePairs
+}
+
+func ReadCredential() client.Credential {
+	credential, err := client.GetCredentialFromEnv()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting credentials from environment")
+	}
+	return credential
 }

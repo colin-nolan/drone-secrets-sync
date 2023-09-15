@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -15,12 +13,23 @@ import (
 
 func main() {
 	configuration := ReadCliArgs()
-	secretsToSync := readSecrets(configuration.SecretsFile, configuration.HashConfiguration)
-	credential := readCredential()
+	secretsToSync := ReadSecrets(configuration.SecretsFile, configuration.HashConfiguration)
+	credential := ReadCredential()
 
 	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
 
+	syncedSecretManager := createSyncedSecretManager(credential, configuration)
+	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, false)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error syncing secrets")
+	}
+
+	output(updatedSecrets)
+}
+
+func createSyncedSecretManager(credential client.Credential, configuration Configuration) secrets.SyncedSecretManager {
 	client := client.CreateClient(credential)
+
 	var genericSecretsManager secrets.GenericSecretsManager
 	if configuration.RepositoryConfiguration != nil {
 		genericSecretsManager = secrets.RepositorySecretsManager{
@@ -36,47 +45,9 @@ func main() {
 			Namespace: configuration.OrganisationConfiguration.Namespace,
 		}
 	}
-	syncedSecretManager := secrets.SyncedSecretManager{GenericSecretManager: genericSecretsManager}
 
-	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, false)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error syncing secrets")
-	}
+	return secrets.SyncedSecretManager{GenericSecretManager: genericSecretsManager}
 
-	output(updatedSecrets)
-}
-
-func readSecrets(sourceFile string, hashConfiguration secrets.Argo2HashConfiguration) []secrets.Secret {
-	var inputData []byte
-	var err error
-	if sourceFile == "-" {
-		inputData, err = io.ReadAll(os.Stdin)
-	} else {
-		inputData, err = os.ReadFile(sourceFile)
-	}
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error reading from stdin")
-	}
-
-	var secretValueMap map[string]interface{}
-	err = json.Unmarshal([]byte(inputData), &secretValueMap)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error parsing JSON from stdin")
-	}
-
-	var secretValuePairs []secrets.Secret
-	for key, value := range secretValueMap {
-		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string), hashConfiguration))
-	}
-	return secretValuePairs
-}
-
-func readCredential() client.Credential {
-	credential, err := client.GetCredentialFromEnv()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting credentials from environment")
-	}
-	return credential
 }
 
 func output(updatedSecrets []string) {
