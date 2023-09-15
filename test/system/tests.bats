@@ -4,8 +4,8 @@ bats_require_minimum_version 1.5.0
 
 : ${SUT:?}
 
-SKIP_DRONE_CI_TEST_MESSAGE="tests against live Drone CI system but DRONE_SERVER and DRONE_TOKEN not set"
-SKIP_REPOSITORY_TEST_MESSAGE="test requires DRONE_REPOSITORY to be set to refer to an active repository in Drone CI"
+SKIP_DRONE_CI_TEST_MESSAGE="tests against live Drone CI system but DRONE_TEST_SERVER and DRONE_TEST_TOKEN not set"
+SKIP_REPOSITORY_TEST_MESSAGE="test requires DRONE_TEST_REPOSITORY to be set to refer to an active repository in Drone CI"
 
 TEST_SECRET_NAME_1="_test-secret-1-${RANDOM}${RANDOM}"
 TEST_SECRET_NAME_2="_test-secret-2-${RANDOM}${RANDOM}"
@@ -13,10 +13,14 @@ TEST_SECRET_NAMES=( "${TEST_SECRET_NAME_1}" "${TEST_SECRET_NAME_2}" )
 
 setup_file() {
     TEST_AGAINST_DRONE=false
-    if [[ -n ${DRONE_SERVER+x} ]] && [[ -n ${DRONE_TOKEN+x} ]]; then 
+    if [[ -n ${DRONE_TEST_SERVER+x} ]] && [[ -n ${DRONE_TEST_TOKEN+x} ]]; then 
         TEST_AGAINST_DRONE=true
     fi
     export TEST_AGAINST_DRONE
+
+    # Requires a test server to be set explicitly to prevent unintended usage against a production server
+    export DRONE_SERVER="${DRONE_TEST_SERVER}"
+    export DRONE_TOKEN="${DRONE_TEST_TOKEN}"
 }
 
 teardown() {
@@ -25,14 +29,14 @@ teardown() {
 }
 
 cleanup_repository_secrets() {
-    if "${TEST_AGAINST_DRONE}" && [[ -z ${DRONE_REPOSITORY+x} ]]; then
+    if "${TEST_AGAINST_DRONE}" && [[ -z ${DRONE_TEST_REPOSITORY+x} ]]; then
         return
     fi
-    secrets_list="$(drone secret ls --format '{{ .Name }}' "${DRONE_REPOSITORY}")"
+    secrets_list="$(drone secret ls --format '{{ .Name }}' "${DRONE_TEST_REPOSITORY}")"
     for secret_prefix in "${TEST_SECRET_NAMES[@]}"; do
         secrets_to_delete="$(grep "${secret_prefix}" <<< "${secrets_list}" | tr '\n' ' ' || true)"
         for secret_name in ${secrets_to_delete}; do
-            drone secret rm --name "${secret_name}" "${DRONE_REPOSITORY}"
+            drone secret rm --name "${secret_name}" "${DRONE_TEST_REPOSITORY}"
         done
     done
 }
@@ -59,7 +63,7 @@ skip_if_cannot_test_against_drone() {
 
 skip_if_cannot_test_against_repository() {
     skip_if_cannot_test_against_drone
-    if [[ -z ${DRONE_REPOSITORY+x} ]]; then
+    if [[ -z ${DRONE_TEST_REPOSITORY+x} ]]; then
         skip "${SKIP_REPOSITORY_TEST_MESSAGE}"
     fi
 }
@@ -71,23 +75,23 @@ skip_if_cannot_test_against_repository() {
 @test "repository set new secrets" {
     skip_if_cannot_test_against_repository
 
-    run --separate-stderr ${SUT} repository -i 8 -l 16 -m 1024 -p 2 -v "${DRONE_REPOSITORY}" \
+    run --separate-stderr ${SUT} repository -i 8 -l 16 -m 1024 -p 2 -v "${DRONE_TEST_REPOSITORY}" \
         <(jq '.' <<< "{\"${TEST_SECRET_NAME_1}\": \"value\", \"${TEST_SECRET_NAME_2}\": \"value\"}")
 
     [ "${status}" -eq 0 ]
     [ $(jq ". | index(\"${TEST_SECRET_NAME_1}\")" <<< "${output}") != null ]
     [ $(jq ". | index(\"${TEST_SECRET_NAME_2}\")" <<< "${output}") != null ]
 
-    drone secret info --name "${TEST_SECRET_NAME_1}" "${DRONE_REPOSITORY}"
-    drone secret info --name "${TEST_SECRET_NAME_2}" "${DRONE_REPOSITORY}"
+    drone secret info --name "${TEST_SECRET_NAME_1}" "${DRONE_TEST_REPOSITORY}"
+    drone secret info --name "${TEST_SECRET_NAME_2}" "${DRONE_TEST_REPOSITORY}"
 }
 
 @test "repository update changed secret" {
     skip_if_cannot_test_against_repository
 
-    drone secret add --name "${TEST_SECRET_NAME_1}" --data "value1" "${DRONE_REPOSITORY}"
+    drone secret add --name "${TEST_SECRET_NAME_1}" --data "value1" "${DRONE_TEST_REPOSITORY}"
 
-    run ${SUT} repository "${DRONE_REPOSITORY}" <(jq '.' <<< "{\"${TEST_SECRET_NAME_1}\": \"value2\"}")
+    run ${SUT} repository "${DRONE_TEST_REPOSITORY}" <(jq '.' <<< "{\"${TEST_SECRET_NAME_1}\": \"value2\"}")
 
     [ "${status}" -eq 0 ]
     [ $(jq ". | index(\"${TEST_SECRET_NAME_1}\")" <<< "${output}") != null ]
@@ -98,8 +102,8 @@ skip_if_cannot_test_against_repository() {
     skip_if_cannot_test_against_repository
 
     secret_input="$(jq '.' <<< "{\"${TEST_SECRET_NAME_1}\": \"value\"}")"
-    ${SUT} repository "${DRONE_REPOSITORY}" <<< "${secret_input}"
-    run ${SUT} repository "${DRONE_REPOSITORY}" <(echo "${secret_input}")
+    ${SUT} repository "${DRONE_TEST_REPOSITORY}" <<< "${secret_input}"
+    run ${SUT} repository "${DRONE_TEST_REPOSITORY}" <(echo "${secret_input}")
 
     [ "${status}" -eq 0 ]
     [ "${output}" == "[]" ]
