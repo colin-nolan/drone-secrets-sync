@@ -19,7 +19,7 @@ TARGET_ARCH ?= amd64 arm64 arm
 TARGET_OS ?= linux
 
 GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
-MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*/build/*')
+MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*build/*' ! -path './test/bats/*')
 JSONNET_FILES := $(shell find . -type f -name '*.jsonnet' ! -path '*/build/*')
 
 INSTALL_PATH = /usr/local/bin/$(BINARY_NAME)

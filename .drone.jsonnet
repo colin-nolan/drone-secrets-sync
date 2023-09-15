@@ -70,7 +70,7 @@ local test_pipeline = {
     {
       name: 'system-tests',
       image: 'golang:alpine',
-      commands: create_setup_commands(['bash', 'curl', 'gcc',' jq', 'libc-dev']) + [
+      commands: create_setup_commands(['bash', 'curl', 'gcc', ' jq', 'libc-dev']) + [
         'curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx && mv drone /usr/local/bin',
         'git submodule update --init --recursive',
         'make test-system',
