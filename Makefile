@@ -102,6 +102,7 @@ format-jsonnet:
 
 test:
 	CGO_ENABLED=1 go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
+	go tool cover -html coverage.out -o coverage.html
 
 version:
 	@echo $(VERSION)

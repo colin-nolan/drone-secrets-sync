@@ -47,7 +47,6 @@ func createSyncedSecretManager(credential client.Credential, configuration Confi
 	}
 
 	return secrets.SyncedSecretManager{GenericSecretManager: genericSecretsManager}
-
 }
 
 func output(updatedSecrets []string) {
