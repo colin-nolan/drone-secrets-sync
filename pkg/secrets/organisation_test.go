@@ -40,10 +40,6 @@ func createRepositoryDroneSecretsManager(namespace string) (OrganisationSecretsM
 	}, client
 }
 
-const (
-	exampleNamespace = "octocat/hello-world"
-)
-
 func TestOrganisationSecretsManager(t *testing.T) {
 	t.Run("list", func(t *testing.T) {
 		manager, client := createRepositoryDroneSecretsManager(exampleNamespace)
@@ -63,7 +59,7 @@ func TestOrganisationSecretsManager(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
 		manager, client := createRepositoryDroneSecretsManager(exampleNamespace)
 		client.On("OrgSecretCreate", exampleNamespace, &drone.Secret{
-			Namespace: exampleRepository,
+			Namespace: exampleNamespace,
 			Name:      exampleSecret1.Name,
 			Data:      exampleSecret1.Value,
 		}).Return(exampleSecret1, nil).Once().Return(&drone.Secret{}, nil).Once()
@@ -82,7 +78,7 @@ func TestOrganisationSecretsManager(t *testing.T) {
 	t.Run("update", func(t *testing.T) {
 		manager, client := createRepositoryDroneSecretsManager(exampleNamespace)
 		client.On("OrgSecretUpdate", exampleNamespace, &drone.Secret{
-			Namespace: exampleRepository,
+			Namespace: exampleNamespace,
 			Name:      exampleSecret1.Name,
 			Data:      exampleSecret1.Value,
 		}).Return(exampleSecret1, nil).Once().Return(&drone.Secret{}, nil).Once()

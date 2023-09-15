@@ -15,32 +15,35 @@ import (
 
 func main() {
 	configuration := ReadCliArgs()
-	secrets := readSecrets(configuration.SourceFile, configuration.HashConfiguration)
+	secretsToSync := readSecrets(configuration.SecretsFile, configuration.HashConfiguration)
 	credential := readCredential()
 
 	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
 
-	updatedSecrets := syncSecrets(configuration.RepositoryOwner(), configuration.RepositoryName(), secrets, credential)
-	output(updatedSecrets)
-}
-
-func syncSecrets(repositoryOwner string, repositoryName string, secretsToSync []secrets.Secret, credential client.Credential) []string {
 	client := client.CreateClient(credential)
-
-	repositorySecretManager := secrets.SyncedSecretManager{
-		GenericSecretManager: secrets.RepositorySecretsManager{
-			Client:     client,
-			Owner:      repositoryOwner,
-			Repository: repositoryName,
-		},
+	var genericSecretsManager secrets.GenericSecretsManager
+	if configuration.RepositoryConfiguration != nil {
+		genericSecretsManager = secrets.RepositorySecretsManager{
+			Client: client,
+			// XXX: use on a repository in a namespace not owned by the same user has not been tested
+			Owner:     configuration.RepositoryConfiguration.RepositoryNamespace(),
+			Namespace: configuration.RepositoryConfiguration.RepositoryNamespace(),
+			Name:      configuration.RepositoryConfiguration.RepositoryName(),
+		}
+	} else {
+		genericSecretsManager = secrets.OrganisationSecretsManager{
+			Client:    client,
+			Namespace: configuration.OrganisationConfiguration.Namespace,
+		}
 	}
+	syncedSecretManager := secrets.SyncedSecretManager{GenericSecretManager: genericSecretsManager}
 
-	updatedSecrets, err := repositorySecretManager.SyncSecrets(secretsToSync, false)
+	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, false)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error syncing secrets")
 	}
 
-	return updatedSecrets
+	output(updatedSecrets)
 }
 
 func readSecrets(sourceFile string, hashConfiguration secrets.Argo2HashConfiguration) []secrets.Secret {

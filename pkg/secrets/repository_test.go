@@ -33,18 +33,21 @@ func (client *MockRepositoryClient) SecretDelete(owner string, name string, secr
 	return args.Error(0)
 }
 
-func createRepositorySecretsManager(owner string, repository string) (RepositorySecretsManager, *MockRepositoryClient) {
+func createRepositorySecretsManager(owner string, namespace string, name string) (RepositorySecretsManager, *MockRepositoryClient) {
 	client := new(MockRepositoryClient)
 	return RepositorySecretsManager{
-		Client:     client,
-		Owner:      owner,
-		Repository: repository,
+		Client:    client,
+		Owner:     owner,
+		Namespace: namespace,
+		Name:      name,
 	}, client
 }
 
 const (
 	exampleOwner      = "octocat"
-	exampleRepository = exampleOwner + "/hello-world"
+	exampleNamespace  = "octocat"
+	exampleName       = "hello-world"
+	exampleRepository = exampleNamespace + "/" + exampleName
 )
 
 var (
@@ -53,7 +56,7 @@ var (
 
 func TestRepositorySecretsManager(t *testing.T) {
 	t.Run("list", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretList", exampleOwner, exampleRepository).Return([]*drone.Secret{{Name: exampleMaskedSecret1.Name}}, nil).Once()
 		secrets, err := manager.List()
 		assert.Nil(t, err)
@@ -61,16 +64,16 @@ func TestRepositorySecretsManager(t *testing.T) {
 	})
 
 	t.Run("list-error", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretList", exampleOwner, exampleRepository).Return([]*drone.Secret{}, errExample).Once()
 		_, err := manager.List()
 		assert.NotNil(t, err)
 	})
 
 	t.Run("create", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretCreate", exampleOwner, exampleRepository, &drone.Secret{
-			Namespace: exampleRepository,
+			Namespace: exampleNamespace,
 			Name:      exampleSecret1.Name,
 			Data:      exampleSecret1.Value,
 		}).Return(exampleSecret1, nil).Once().Return(&drone.Secret{}, nil).Once()
@@ -80,16 +83,16 @@ func TestRepositorySecretsManager(t *testing.T) {
 	})
 
 	t.Run("create-err", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretCreate", exampleOwner, exampleRepository, mock.AnythingOfType("*drone.Secret")).Return(exampleSecret1, nil).Once().Return(&drone.Secret{}, errExample).Once()
 		err := manager.Create(exampleSecret1.Name, exampleSecret1.Value)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("update", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretUpdate", exampleOwner, exampleRepository, &drone.Secret{
-			Namespace: exampleRepository,
+			Namespace: exampleNamespace,
 			Name:      exampleSecret1.Name,
 			Data:      exampleSecret1.Value,
 		}).Return(exampleSecret1, nil).Once().Return(&drone.Secret{}, nil).Once()
@@ -99,21 +102,21 @@ func TestRepositorySecretsManager(t *testing.T) {
 	})
 
 	t.Run("update-err", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretUpdate", exampleOwner, exampleRepository, mock.AnythingOfType("*drone.Secret")).Return(exampleSecret1, nil).Once().Return(&drone.Secret{}, errExample).Once()
 		err := manager.Update(exampleSecret1.Name, exampleSecret1.Value)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("delete", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretDelete", exampleOwner, exampleRepository, exampleSecret1.Name).Return(nil).Once()
 		err := manager.Delete(exampleSecret1.Name)
 		assert.Nil(t, err)
 	})
 
 	t.Run("delete-error", func(t *testing.T) {
-		manager, client := createRepositorySecretsManager(exampleOwner, exampleRepository)
+		manager, client := createRepositorySecretsManager(exampleOwner, exampleNamespace, exampleName)
 		client.On("SecretDelete", exampleOwner, exampleRepository, exampleSecret1.Name).Return(errExample).Once()
 		err := manager.Delete(exampleSecret1.Name)
 		assert.NotNil(t, err)

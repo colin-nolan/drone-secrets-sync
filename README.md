@@ -60,7 +60,7 @@ export DRONE_SERVER=http://drone.mycompany.com
 ```
 
 ```text
-Usage: drone-secrets-sync_linux-amd64 [--argon2-iterations ARGON2-ITERATIONS] [--argon2-length ARGON2-LENGTH] [--argon2-memory ARGON2-MEMORY] [--argon2-parallelism ARGON2-PARALLELISM] [--verbose] <command> [<args>]
+Usage: drone-secrets-sync [--argon2-iterations ARGON2-ITERATIONS] [--argon2-length ARGON2-LENGTH] [--argon2-memory ARGON2-MEMORY] [--argon2-parallelism ARGON2-PARALLELISM] [--verbose] <command> [<args>]
 
 Options:
   --argon2-iterations ARGON2-ITERATIONS, -i ARGON2-ITERATIONS
@@ -77,10 +77,11 @@ Options:
 
 Commands:
   repository             sync secrets for a repository
+  organisation           sync secrets for an organisation
 ```
 
 ```text
-Usage: drone-secrets-sync_linux-amd64 repository REPOSITORY [SECRETSFILE]
+Usage: drone-secrets-sync repository REPOSITORY [SECRETSFILE]
 
 Positional arguments:
   REPOSITORY             repository to sync secrets for, e.g. octocat/hello-world
@@ -99,6 +100,27 @@ Global options:
   --help, -h             display this help and exit
   --version              display version and exit
 ```
+
+```text
+Usage: drone-secrets-sync organisation NAMESPACE [SECRETSFILE]
+
+Positional arguments:
+  NAMESPACE              name of organisation to sync secrets for, e.g. octocat
+  SECRETSFILE            location to read secrets from (default: - (stdin))
+
+Global options:
+  --argon2-iterations ARGON2-ITERATIONS, -i ARGON2-ITERATIONS
+                         number of argon2 iterations to create corresponding hash secret name [default: 32]
+  --argon2-length ARGON2-LENGTH, -l ARGON2-LENGTH
+                         length of argon2 hash used in corresponding hash secret name [default: 32]
+  --argon2-memory ARGON2-MEMORY, -m ARGON2-MEMORY
+                         memory for argon2 to use when creating corresponding hash secret name [default: 65536]
+  --argon2-parallelism ARGON2-PARALLELISM, -p ARGON2-PARALLELISM
+                         parallelism used when creating argon2 hash [default: 4]
+  --verbose, -v          enable verbose logging
+  --help, -h             display this help and exit
+  --version              display version and exit
+  ```
 
 ## Development
 
@@ -170,6 +192,14 @@ When testing against a Drone CI installation, to clear all secrets on a reposito
 repository=octocat/hello-world
 drone secret ls --format '{{ .Name }}' "${repository}" \
     | xargs -I {} drone secret rm --name {} "${repository}"
+```
+
+Or on an organisation:
+
+```shell
+namespace=octocat
+drone orgsecret ls --format '{{ .Name }}' "${namespace}" \
+    | xargs -n 1 drone orgsecret rm "${namespace}"
 ```
 
 Requires:
