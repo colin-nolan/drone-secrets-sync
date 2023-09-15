@@ -120,7 +120,7 @@ Global options:
   --verbose, -v          enable verbose logging
   --help, -h             display this help and exit
   --version              display version and exit
-  ```
+```
 
 ## Development
 
