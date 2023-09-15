@@ -111,7 +111,7 @@ test-unit:
 	CGO_ENABLED=1 go test -v -cover -race ./... -args -test.gocoverdir="$${PWD}/.coverage/unit"
 
 test-system:
-	go build -cover -race -o build/drone-secrets-sync-coveraged $(ENTRYPOINT)
+	CGO_ENABLED=1 go build -cover -race -o build/drone-secrets-sync-coveraged $(ENTRYPOINT)
 
 	rm -rf .coverage/system
 	mkdir -p .coverage/system
