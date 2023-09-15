@@ -85,6 +85,7 @@ func ReadSecrets(sourceFile string, hashConfiguration secrets.Argo2HashConfigura
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading from stdin")
 	}
+	log.Debug().Msgf("Input data: %s", inputData)
 
 	var secretValueMap map[string]interface{}
 	err = json.Unmarshal([]byte(inputData), &secretValueMap)

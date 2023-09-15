@@ -10,6 +10,7 @@ SKIP_REPOSITORY_TEST_MESSAGE="test requires DRONE_TEST_REPOSITORY to be set to r
 TEST_SECRET_NAME_1="_test-secret-1-${RANDOM}${RANDOM}"
 TEST_SECRET_NAME_2="_test-secret-2-${RANDOM}${RANDOM}"
 TEST_SECRET_NAMES=( "${TEST_SECRET_NAME_1}" "${TEST_SECRET_NAME_2}" )
+TEST_SECRET_INPUT="$(jq -c '.' <<< "{\"${TEST_SECRET_NAME_1}\": \"value\"}")"
 
 setup_file() {
     TEST_AGAINST_DRONE=false
@@ -53,7 +54,6 @@ cleanup_organisation_secrets() {
         done
     done 
 }
-
 
 skip_if_cannot_test_against_drone() {
     if ! "${TEST_AGAINST_DRONE}"; then
@@ -101,10 +101,33 @@ skip_if_cannot_test_against_repository() {
 @test "repository update unchanged secret" {
     skip_if_cannot_test_against_repository
 
-    secret_input="$(jq '.' <<< "{\"${TEST_SECRET_NAME_1}\": \"value\"}")"
-    ${SUT} repository "${DRONE_TEST_REPOSITORY}" <<< "${secret_input}"
-    run ${SUT} repository "${DRONE_TEST_REPOSITORY}" <(echo "${secret_input}")
+    ${SUT} repository "${DRONE_TEST_REPOSITORY}" <<< "${TEST_SECRET_INPUT}"
+    run ${SUT} repository "${DRONE_TEST_REPOSITORY}" <(echo "${TEST_SECRET_INPUT}")
 
     [ "${status}" -eq 0 ]
     [ "${output}" == "[]" ]
+}
+
+@test "repository without namespace" {
+    skip_if_cannot_test_against_drone
+    run --separate-stderr ${SUT} repository missing-namespace <(echo '{}')
+    [ ${status} -ne 0 ]
+}
+
+@test "repository with invalid JSON input" {
+    skip_if_cannot_test_against_repository
+    run --separate-stderr ${SUT} repository "${DRONE_TEST_REPOSITORY}" <(echo '{-}')
+    [ ${status} -ne 0 ]
+}
+
+@test "repository without DRONE_SERVER set" {
+    skip_if_cannot_test_against_repository
+    run --separate-stderr bash -c "DRONE_SERVER= ${SUT} -v repository "${DRONE_TEST_REPOSITORY}" <<< '${TEST_SECRET_INPUT}'"
+    [ ${status} -ne 0 ]
+}
+
+@test "repository without DRONE_TOKEN set" {
+    skip_if_cannot_test_against_repository
+    run --separate-stderr bash -c "DRONE_TOKEN= ${SUT} -v repository "${DRONE_TEST_REPOSITORY}" <<< '${TEST_SECRET_INPUT}'"
+    [ ${status} -ne 0 ]
 }
