@@ -6,14 +6,21 @@
 `drone-secrets-sync` is able to _idempotently_ synchronise [Drone CI](https://www.drone.io) secrets.
 
 ```shell
-# Synchronise multiple repository secrets from JSON map on stdin
-echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
-    | drone-secrets-sync repository octocat/hello-world
+# Synchronise repository secrets from JSON file
+drone-secrets-sync repository octocat/hello-world secrets.json
+
+# Synchronise organisation secrets from JSON file
+drone-secrets-sync organisation octocat secrets.json
 ```
 
 ```shell
-# Synchronise repository secrets from JSON file
-drone-secrets-sync repository octocat/hello-world secrets.json
+# Synchronise multiple repository secrets from JSON map on stdin
+echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
+    | drone-secrets-sync organisation octocat/hello-world
+
+# Synchronise multiple organisation secrets from JSON map on stdin
+echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
+    | drone-secrets-sync organisation octocat
 ```
 
 The tool will output what secrets have changed, e.g.
