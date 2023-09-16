@@ -85,6 +85,9 @@ local test_pipeline = {
         DRONE_TEST_REPOSITORY: {
           from_secret: 'drone_test_repository',
         },
+        DRONE_TEST_ORGANISATION: {
+          from_secret: 'drone_test_organisation',
+        },
       },
       depends_on: [],
     },
