@@ -3,7 +3,7 @@
 
 ## About
 
-`drone-secrets-sync` is able to _idempotently_ synchronise [Drone CI](https://www.drone.io) secrets.
+`drone-secrets-sync` is able to _idempotently_ synchronise [Drone CI](https://www.drone.io) repository and organisation secrets.
 
 ```shell
 # Synchronise repository secrets from JSON file
