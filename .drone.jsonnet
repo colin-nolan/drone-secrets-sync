@@ -71,7 +71,9 @@ local test_pipeline = {
       name: 'system-tests',
       image: 'golang:alpine',
       commands: create_setup_commands(['bash', 'curl', 'gcc', ' jq', 'libc-dev']) + [
-        'curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx && mv drone /usr/local/bin',
+        # XXX: It would be better to install from github but I could not get it to work for drone-cli
+        'git clone --depth=1 --branch master https://github.com/harness/drone-cli.git /tmp/drone-cli && cd /tmp/drone-cli && go install ./... && cd -',
+        'go install github.com/shenwei356/rush@latest',
         'git submodule update --init --recursive',
         'make test-system',
       ],
