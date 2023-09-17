@@ -116,7 +116,7 @@ test-system:
 	rm -rf .coverage/system
 	mkdir -p .coverage/system
 
-	GOCOVERDIR=.coverage/system SUT=build/drone-secrets-sync-coveraged	test/bats/bin/bats test/system/tests.bats
+	GOCOVERDIR=.coverage/system SUT=build/drone-secrets-sync-coveraged test/bats/bin/bats -j 4 test/system/tests.bats
 
 test-coverage-report:
 	@# TODO: The system test paths are absolute file paths opposed to package paths. It's not clear
