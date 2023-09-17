@@ -70,10 +70,14 @@ local test_pipeline = {
     {
       name: 'system-tests',
       image: 'golang:alpine',
-      commands: create_setup_commands(['bash', 'curl', 'gcc', ' jq', 'libc-dev']) + [
-        # XXX: It would be better to install from github but I could not get it to work for drone-cli
-        'git clone --depth=1 --branch master https://github.com/harness/drone-cli.git /tmp/drone-cli && cd /tmp/drone-cli && go install ./... && cd -',
-        'go install github.com/shenwei356/rush@latest',
+      commands: create_setup_commands(['bash', 'gcc', 'jq', 'parallel', 'libc-dev']) + [
+        // XXX: It would be better to `go install` from github but I could not get it to work for drone-cli
+        |||
+          git clone --depth=1 --branch master https://github.com/harness/drone-cli.git /tmp/drone-cli
+          cd /tmp/drone-cli
+          go install ./...
+          cd -
+        |||,
         'git submodule update --init --recursive',
         'make test-system',
       ],
@@ -102,21 +106,32 @@ local test_pipeline = {
       depends_on: ['unit-tests', 'system-tests'],
     },
     {
+      // Installing codecov uploader from source to support any runner arch
+      name: 'codecov-builder',
+      image: 'node:16-alpine',
+      commands: make_commands_fail_on_error([
+        'apk add --update-cache curl git',
+        'repository_directory="$${PWD}"',
+        'git clone --depth=1 --branch=main https://github.com/codecov/uploader.git /tmp/uploader',
+        'cd /tmp/uploader',
+        'npm install',
+        'npm run build',
+        'npx pkg . --targets alpine --output "$${repository_directory}/build/third-party/codecov"',
+      ]),
+      depends_on: [],
+    },
+    {
       name: 'publish-coverage',
       image: 'alpine',
-      commands: make_commands_fail_on_error([
-        'apk add --update-cache curl',
-        // XXX: This is an arch specific binary
-        'curl -fsL https://uploader.codecov.io/latest/aarch64/codecov > /usr/local/bin/codecov',
-        'chmod +x /usr/local/bin/codecov',
+      commands: [
         'codecov',
-      ]),
+      ],
       environment: {
         CODECOV_TOKEN: {
           from_secret: 'codecov_token',
         },
       },
-      depends_on: ['compile-coverage-report'],
+      depends_on: ['codecov-builder', 'compile-coverage-report'],
     },
   ],
 };
@@ -190,7 +205,11 @@ local build_pipeline = {
       name: 'build-kaniko-tool',
       image: 'golang:alpine',
       commands: create_setup_commands(['bash']) + [
-        'if [[ ! -d build/third-party/kaniko ]]; then git clone --depth=1 --branch=main https://github.com/GoogleContainerTools/kaniko.git build/third-party/kaniko; fi',
+        |||
+          if [[ ! -d build/third-party/kaniko ]]; then 
+            git clone --depth=1 --branch=main https://github.com/GoogleContainerTools/kaniko.git build/third-party/kaniko
+          fi
+        |||,
         'cd build/third-party/kaniko',
         'make out/executor',
       ],
@@ -216,7 +235,11 @@ local build_pipeline = {
         image: 'alpine',
         commands: create_setup_commands() + [
           'mkdir -p build/release',
-          'version="$(make version)"; cd build/release && ln -f -s "$${version}" latest && cd -',
+          |||
+            version="$(make version)"
+            cd build/release
+            ln -f -s "$${version}" latest
+          |||,
         ],
         when: {
           event: ['tag'],
