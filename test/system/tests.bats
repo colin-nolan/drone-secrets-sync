@@ -230,6 +230,10 @@ set_new_secret_test() {
 @test "repository set new secrets" {
     skip_if_cannot_test_against_repository
     set_new_secret_test repository "${DRONE_TEST_REPOSITORY}"
+}
+
+@test "repo set new secrets" {
+    skip_if_cannot_test_against_repository
     set_new_secret_test repo "${DRONE_TEST_REPOSITORY}"
 }
 
@@ -237,6 +241,11 @@ set_new_secret_test() {
     skip_if_cannot_test_against_organisation
     set_new_secret_test organisation "${DRONE_TEST_ORGANISATION}"
     set_new_secret_test repo "${DRONE_TEST_ORGANISATION}"
+}
+
+@test "org set new secrets" {
+    skip_if_cannot_test_against_organisation
+    set_new_secret_test org "${DRONE_TEST_ORGANISATION}"
 }
 
 update_changed_secret_test() {
