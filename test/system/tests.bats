@@ -82,7 +82,7 @@ add_secret() {
     local name="$2"
     local value="$3"
 
-    if [[ "${type}" == "repository" ]]; then
+    if [[ "${type}" == "repository" || "${type}" == "repo" ]]; then
         drone secret add --name "${name}" --data "${value}" "${DRONE_TEST_REPOSITORY}"
     else
         drone orgsecret add "${DRONE_TEST_ORGANISATION}" "${name}" "${value}" 
@@ -93,7 +93,7 @@ secret_exists() {
     local type="$1"
     local name="$2"
 
-    if [[ "${type}" == "repository" ]]; then
+    if [[ "${type}" == "repository" || "${type}" == "repo" ]]; then
         drone secret info --name "${name}" "${DRONE_TEST_REPOSITORY}"
     else
         drone orgsecret info "${DRONE_TEST_ORGANISATION}" "${name}"
