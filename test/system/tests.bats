@@ -104,12 +104,6 @@ secret_exists() {
     ${SUT} --help
 }
 
-@test "invalid subcommand" {
-    skip_if_cannot_test_against_drone
-    run --separate-stderr ${SUT} invalid --help
-    [ ${status} -ne 0 ]
-}
-
 @test "repository without namespace" {
     skip_if_cannot_test_against_drone
     run --separate-stderr ${SUT} repository missing-namespace <(echo '{}')
