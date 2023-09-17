@@ -28,7 +28,9 @@ type repositoryCmd struct {
 
 type cliArgs struct {
 	Repository            *repositoryCmd   `arg:"subcommand:repository" help:"sync secrets for a repository"`
+	Repo                  *repositoryCmd   `arg:"subcommand:repo" help:"sync secrets for a repository"`
 	Organisation          *organisationCmd `arg:"subcommand:organisation" help:"sync secrets for an organisation"`
+	Org                   *organisationCmd `arg:"subcommand:org" help:"sync secrets for an organisation"`
 	Argon2HashIterations  uint32           `arg:"-i,--argon2-iterations" default:"32" help:"number of argon2 iterations to create corresponding hash secret name"`
 	Argon2HashLength      uint32           `arg:"-l,--argon2-length" default:"32" help:"length of argon2 hash used in corresponding hash secret name"`
 	Argon2HashMemory      uint32           `arg:"-m,--argon2-memory" default:"65536" help:"memory for argon2 to use when creating corresponding hash secret name"`
@@ -58,15 +60,27 @@ func ReadCliArgs() Configuration {
 			Length:      args.Argon2HashLength,
 		},
 	}
-	if args.Repository != nil {
-		configuration.SecretsFile = args.Repository.SecretsFile
-		configuration.RepositoryConfiguration = &RepositoryConfiguration{
-			Repository: args.Repository.Repository,
+	if args.Repository != nil || args.Repo != nil {
+		var source repositoryCmd
+		if args.Repository != nil {
+			source = *args.Repository
+		} else {
+			source = *args.Repo
 		}
-	} else if args.Organisation != nil {
-		configuration.SecretsFile = args.Organisation.SecretsFile
+		configuration.SecretsFile = source.SecretsFile
+		configuration.RepositoryConfiguration = &RepositoryConfiguration{
+			Repository: source.Repository,
+		}
+	} else if args.Organisation != nil || args.Org != nil {
+		var source organisationCmd
+		if args.Organisation != nil {
+			source = *args.Organisation
+		} else {
+			source = *args.Org
+		}
+		configuration.SecretsFile = source.SecretsFile
 		configuration.OrganisationConfiguration = &OrganisationConfiguration{
-			Namespace: args.Organisation.Namespace,
+			Namespace: source.Namespace,
 		}
 	} else {
 		parser.Fail("No subcommand specified")

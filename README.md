@@ -7,20 +7,20 @@
 
 ```shell
 # Synchronise repository secrets from JSON file
-drone-secrets-sync repository octocat/hello-world secrets.json
+drone-secrets-sync repo octocat/hello-world secrets.json
 
 # Synchronise organisation secrets from JSON file
-drone-secrets-sync organisation octocat secrets.json
+drone-secrets-sync org octocat secrets.json
 ```
 
 ```shell
 # Synchronise multiple repository secrets from JSON map on stdin
 echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
-    | drone-secrets-sync organisation octocat/hello-world
+    | drone-secrets-sync repo octocat/hello-world
 
 # Synchronise multiple organisation secrets from JSON map on stdin
 echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
-    | drone-secrets-sync organisation octocat
+    | drone-secrets-sync org octocat
 ```
 
 The tool will output what secrets have changed, e.g.
@@ -84,7 +84,9 @@ Options:
 
 Commands:
   repository             sync secrets for a repository
+  repo                   sync secrets for a repository
   organisation           sync secrets for an organisation
+  org                    sync secrets for an organisation
 ```
 
 ```text

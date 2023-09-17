@@ -104,6 +104,12 @@ secret_exists() {
     ${SUT} --help
 }
 
+@test "invalid subcommand" {
+    skip_if_cannot_test_against_drone
+    run --separate-stderr ${SUT} invalid --help
+    [ ${status} -ne 0 ]
+}
+
 @test "repository without namespace" {
     skip_if_cannot_test_against_drone
     run --separate-stderr ${SUT} repository missing-namespace <(echo '{}')
@@ -224,11 +230,13 @@ set_new_secret_test() {
 @test "repository set new secrets" {
     skip_if_cannot_test_against_repository
     set_new_secret_test repository "${DRONE_TEST_REPOSITORY}"
+    set_new_secret_test repo "${DRONE_TEST_REPOSITORY}"
 }
 
 @test "organisation set new secrets" {
     skip_if_cannot_test_against_organisation
     set_new_secret_test organisation "${DRONE_TEST_ORGANISATION}"
+    set_new_secret_test repo "${DRONE_TEST_ORGANISATION}"
 }
 
 update_changed_secret_test() {
