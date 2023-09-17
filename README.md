@@ -1,5 +1,6 @@
 [![Build Status](https://nobadkitty.tplinkdns.com:8900/api/badges/colin-nolan/drone-secrets-sync/status.svg)](https://nobadkitty.tplinkdns.com:8900/colin-nolan/drone-secrets-sync)
 [![Code Coverage](https://codecov.io/gh/colin-nolan/drone-secrets-sync/graph/badge.svg?token=MS3WG5C1W5)](https://codecov.io/gh/colin-nolan/drone-secrets-sync)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcolin-nolan%2Fdrone-secrets-sync.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcolin-nolan%2Fdrone-secrets-sync?ref=badge_shield)
 
 ## About
 
@@ -224,3 +225,7 @@ Requires:
 GPL v3 (contact for other licencing). Copyright 2023 Colin Nolan.
 
 This work is in no way related to any company that I may work for.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcolin-nolan%2Fdrone-secrets-sync.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcolin-nolan%2Fdrone-secrets-sync?ref=badge_large)
