@@ -232,7 +232,7 @@ local build_pipeline = {
             'build/release/latest/drone-secrets-sync*',
             'CHANGELOG.md',
             'README.md',
-            'LICENCE.txt'
+            'LICENCE.txt',
           ],
         },
         when: {
