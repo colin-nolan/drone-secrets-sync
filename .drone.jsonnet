@@ -124,7 +124,7 @@ local test_pipeline = {
       name: 'publish-coverage',
       image: 'alpine',
       commands: [
-        'codecov',
+        'build/third-party/codecov',
       ],
       environment: {
         CODECOV_TOKEN: {
