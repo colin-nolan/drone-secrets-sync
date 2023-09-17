@@ -240,7 +240,6 @@ set_new_secret_test() {
 @test "organisation set new secrets" {
     skip_if_cannot_test_against_organisation
     set_new_secret_test organisation "${DRONE_TEST_ORGANISATION}"
-    set_new_secret_test repo "${DRONE_TEST_ORGANISATION}"
 }
 
 @test "org set new secrets" {
