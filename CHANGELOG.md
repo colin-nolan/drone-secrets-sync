@@ -1,5 +1,11 @@
 # Drone Secrets Sync
 
+## \[1.3.0\] (unreleased)
+
+### Added
+
+- Dry run option.
+
 ## \[1.2.0\] (2023-09-17)
 
 ### Added
