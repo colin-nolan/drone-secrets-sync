@@ -1,6 +1,6 @@
 # Drone Secrets Sync
 
-## \[1.3.0\] (unreleased)
+## \[1.3.0\] (2023-09-18)
 
 ### Added
 
