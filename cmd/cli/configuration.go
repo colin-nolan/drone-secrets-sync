@@ -14,6 +14,7 @@ type Configuration struct {
 	HashConfiguration         secrets.Argo2HashConfiguration
 	RepositoryConfiguration   *RepositoryConfiguration
 	OrganisationConfiguration *OrganisationConfiguration
+	DryRun                    bool
 }
 
 type RepositoryConfiguration struct {

@@ -19,7 +19,7 @@ func main() {
 	credential := ReadCredential()
 
 	syncedSecretManager := createSyncedSecretManager(credential, configuration)
-	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, false)
+	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, configuration.DryRun)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error syncing secrets")
 	}

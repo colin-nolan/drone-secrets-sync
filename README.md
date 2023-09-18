@@ -67,7 +67,7 @@ export DRONE_SERVER=http://drone.mycompany.com
 ```
 
 ```text
-Usage: drone-secrets-sync [--argon2-iterations ARGON2-ITERATIONS] [--argon2-length ARGON2-LENGTH] [--argon2-memory ARGON2-MEMORY] [--argon2-parallelism ARGON2-PARALLELISM] [--verbose] <command> [<args>]
+Usage: drone-secrets-sync [--argon2-iterations ARGON2-ITERATIONS] [--argon2-length ARGON2-LENGTH] [--argon2-memory ARGON2-MEMORY] [--argon2-parallelism ARGON2-PARALLELISM] [--dry-run] [--verbose] <command> [<args>]
 
 Options:
   --argon2-iterations ARGON2-ITERATIONS, -i ARGON2-ITERATIONS
@@ -78,6 +78,7 @@ Options:
                          memory for argon2 to use when creating corresponding hash secret name [default: 65536]
   --argon2-parallelism ARGON2-PARALLELISM, -p ARGON2-PARALLELISM
                          parallelism used when creating argon2 hash [default: 4]
+  --dry-run, -d          indicates only what secrets would be updated; does not update secrets
   --verbose, -v          enable verbose logging
   --help, -h             display this help and exit
   --version              display version and exit
@@ -90,7 +91,7 @@ Commands:
 ```
 
 ```text
-Usage: drone-secrets-sync repository REPOSITORY [SECRETSFILE]
+Usage: drone-secrets-sync repo REPOSITORY [SECRETSFILE]
 
 Positional arguments:
   REPOSITORY             repository to sync secrets for, e.g. octocat/hello-world
@@ -111,7 +112,7 @@ Global options:
 ```
 
 ```text
-Usage: drone-secrets-sync organisation NAMESPACE [SECRETSFILE]
+Usage: drone-secrets-sync org NAMESPACE [SECRETSFILE]
 
 Positional arguments:
   NAMESPACE              name of organisation to sync secrets for, e.g. octocat
