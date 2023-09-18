@@ -35,6 +35,7 @@ type cliArgs struct {
 	Argon2HashLength      uint32           `arg:"-l,--argon2-length" default:"32" help:"length of argon2 hash used in corresponding hash secret name"`
 	Argon2HashMemory      uint32           `arg:"-m,--argon2-memory" default:"65536" help:"memory for argon2 to use when creating corresponding hash secret name"`
 	Argon2HashParallelism uint8            `arg:"-p,--argon2-parallelism" default:"4" help:"parallelism used when creating argon2 hash"`
+	DryRun                bool             `arg:"-d,--dry-run" help:"indicate only what secrets would be updated; does not update secrets"`
 	Verbose               bool             `arg:"-v,--verbose" help:"enable verbose logging"`
 }
 
@@ -59,6 +60,7 @@ func ReadCliArgs() Configuration {
 			Parallelism: args.Argon2HashParallelism,
 			Length:      args.Argon2HashLength,
 		},
+		DryRun: args.DryRun,
 	}
 	if args.Repository != nil || args.Repo != nil {
 		var source repositoryCmd
