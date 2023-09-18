@@ -315,3 +315,47 @@ mixed_secrets_update_test() {
     skip_if_cannot_test_against_organisation
     mixed_secrets_update_test organisation "${DRONE_TEST_ORGANISATION}"
 }
+
+dry_run_test() {
+    local subcommand="$1"
+    local target="$2"
+
+    add_secret "${subcommand}" "${TEST_SECRET_NAME_1}" value
+    ${SUT} "${subcommand}" "${target}" <(jq '.' <<< "{\"${TEST_SECRET_NAME_2}\": \"value\"}")
+    ${SUT} "${subcommand}" "${target}" <(jq '.' <<< "{\"${TEST_SECRET_NAME_3}\": \"value\"}")
+
+    # Expect the same result multiple times, as no update should be done
+    for i in $(seq 3); do
+        run --separate-stderr ${SUT} --dry-run "${subcommand}" "${target}" \
+            <(jq '.' <<< "{
+                \"${TEST_SECRET_NAME_1}\": \"value\",
+                \"${TEST_SECRET_NAME_2}\": \"next-value\",
+                \"${TEST_SECRET_NAME_3}\": \"value\"
+            }")
+        
+        [ "${status}" -eq 0 ]
+        [ $(jq ". | length" <<< "${output}") -eq 2 ]
+        [ $(jq ". | index(\"${TEST_SECRET_NAME_1}\")" <<< "${output}") != null ]
+        [ $(jq ". | index(\"${TEST_SECRET_NAME_2}\")" <<< "${output}") != null ]
+    done
+
+    # Update expected
+    output="$(${SUT} "${subcommand}" "${target}" \
+        <(jq '.' <<< "{
+            \"${TEST_SECRET_NAME_1}\": \"value\",
+            \"${TEST_SECRET_NAME_2}\": \"next-value\",
+            \"${TEST_SECRET_NAME_3}\": \"value\"
+        }")
+    )"
+    [ $(jq ". | length" <<< "${output}") -eq 2 ]
+}
+
+@test "repository dry run" {
+    skip_if_cannot_test_against_repository
+    dry_run_test repository "${DRONE_TEST_REPOSITORY}"
+}
+
+@test "organisation dry run" {
+    skip_if_cannot_test_against_organisation
+    dry_run_test organisation "${DRONE_TEST_ORGANISATION}"
+}
