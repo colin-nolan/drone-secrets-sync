@@ -67,7 +67,7 @@ export DRONE_SERVER=http://drone.mycompany.com
 ```
 
 ```text
-Usage: drone-secrets-sync [--argon2-iterations ARGON2-ITERATIONS] [--argon2-length ARGON2-LENGTH] [--argon2-memory ARGON2-MEMORY] [--argon2-parallelism ARGON2-PARALLELISM] [--dry-run] [--verbose] <command> [<args>]
+Usage: drone-secrets-sync [--argon2-iterations ARGON2-ITERATIONS] [--argon2-length ARGON2-LENGTH] [--argon2-memory ARGON2-MEMORY] [--argon2-parallelism ARGON2-PARALLELISM] [--dry-run] [--droneserver DRONESERVER] [--dronetoken DRONETOKEN] [--verbose] <command> [<args>]
 
 Options:
   --argon2-iterations ARGON2-ITERATIONS, -i ARGON2-ITERATIONS
@@ -78,7 +78,9 @@ Options:
                          memory for argon2 to use when creating corresponding hash secret name [default: 65536]
   --argon2-parallelism ARGON2-PARALLELISM, -p ARGON2-PARALLELISM
                          parallelism used when creating argon2 hash [default: 4]
-  --dry-run, -d          indicates only what secrets would be updated; does not update secrets
+  --dry-run, -d          indicate only what secrets would be updated; does not update secrets
+  --droneserver DRONESERVER [env: DRONE_SERVER]
+  --dronetoken DRONETOKEN [env: DRONE_TOKEN]
   --verbose, -v          enable verbose logging
   --help, -h             display this help and exit
   --version              display version and exit
@@ -106,6 +108,9 @@ Global options:
                          memory for argon2 to use when creating corresponding hash secret name [default: 65536]
   --argon2-parallelism ARGON2-PARALLELISM, -p ARGON2-PARALLELISM
                          parallelism used when creating argon2 hash [default: 4]
+  --dry-run, -d          indicate only what secrets would be updated; does not update secrets
+  --droneserver DRONESERVER [env: DRONE_SERVER]
+  --dronetoken DRONETOKEN [env: DRONE_TOKEN]
   --verbose, -v          enable verbose logging
   --help, -h             display this help and exit
   --version              display version and exit
@@ -127,6 +132,9 @@ Global options:
                          memory for argon2 to use when creating corresponding hash secret name [default: 65536]
   --argon2-parallelism ARGON2-PARALLELISM, -p ARGON2-PARALLELISM
                          parallelism used when creating argon2 hash [default: 4]
+  --dry-run, -d          indicate only what secrets would be updated; does not update secrets
+  --droneserver DRONESERVER [env: DRONE_SERVER]
+  --dronetoken DRONETOKEN [env: DRONE_TOKEN]
   --verbose, -v          enable verbose logging
   --help, -h             display this help and exit
   --version              display version and exit

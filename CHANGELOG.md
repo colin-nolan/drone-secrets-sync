@@ -5,6 +5,7 @@
 ### Added
 
 - Dry run option.
+- `DRONE_SERVER` and `DRONE_TOKEN` env variables documented in the CLI, where they are now also configurable with flags.
 
 ## \[1.2.0\] (2023-09-17)
 

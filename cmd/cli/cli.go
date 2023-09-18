@@ -36,6 +36,8 @@ type cliArgs struct {
 	Argon2HashMemory      uint32           `arg:"-m,--argon2-memory" default:"65536" help:"memory for argon2 to use when creating corresponding hash secret name"`
 	Argon2HashParallelism uint8            `arg:"-p,--argon2-parallelism" default:"4" help:"parallelism used when creating argon2 hash"`
 	DryRun                bool             `arg:"-d,--dry-run" help:"indicate only what secrets would be updated; does not update secrets"`
+	DroneServer           string           `arg:"env:DRONE_SERVER"`
+	DroneToken            string           `arg:"env:DRONE_TOKEN"`
 	Verbose               bool             `arg:"-v,--verbose" help:"enable verbose logging"`
 }
 
@@ -61,6 +63,10 @@ func ReadCliArgs() Configuration {
 			Length:      args.Argon2HashLength,
 		},
 		DryRun: args.DryRun,
+		DroneCredential: client.Credential{
+			Server: args.DroneServer,
+			Token:  args.DroneToken,
+		},
 	}
 	if args.Repository != nil || args.Repo != nil {
 		var source repositoryCmd
@@ -114,12 +120,4 @@ func ReadSecrets(sourceFile string, hashConfiguration secrets.Argo2HashConfigura
 		secretValuePairs = append(secretValuePairs, secrets.NewSecret(key, value.(string), hashConfiguration))
 	}
 	return secretValuePairs
-}
-
-func ReadCredential() client.Credential {
-	credential, err := client.GetCredentialFromEnv()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting credentials from environment")
-	}
-	return credential
 }

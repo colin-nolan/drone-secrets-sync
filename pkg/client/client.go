@@ -2,8 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/drone/drone-go/drone"
 	"golang.org/x/oauth2"
@@ -17,32 +15,6 @@ const (
 type Credential struct {
 	Server string
 	Token  string
-}
-
-// Retrieves Drone credentials (host and token) from environment variables.
-//
-// This function reads the values of environment variables DroneServerVariable and DroneTokenVariable
-// and returns them as a Credential struct. It checks that both environment variables are set and
-// non-empty. If either of them is not set or empty, it returns an empty Credential and an error
-// describing which environment variable is missing or empty.
-//
-// Returns:
-//   - credential: A struct containing the host and token.
-//   - error: An error describing any issues with environment variable values.
-func GetCredentialFromEnv() (credential Credential, err error) {
-	server := os.Getenv(DroneServerVariable)
-	if server == "" {
-		return Credential{}, fmt.Errorf("%s environment variables must be set and non-empty", DroneServerVariable)
-	}
-	token := os.Getenv(DroneTokenVariable)
-	if token == "" {
-		return Credential{}, fmt.Errorf("%s environment variables must be set and non-empty", DroneTokenVariable)
-	}
-
-	return Credential{
-		Server: server,
-		Token:  token,
-	}, nil
 }
 
 // Creates a Drone client with the provided credential.

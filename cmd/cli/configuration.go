@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"github.com/colin-nolan/drone-secrets-sync/pkg/client"
 	"github.com/colin-nolan/drone-secrets-sync/pkg/secrets"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -15,6 +16,7 @@ type Configuration struct {
 	RepositoryConfiguration   *RepositoryConfiguration
 	OrganisationConfiguration *OrganisationConfiguration
 	DryRun                    bool
+	DroneCredential           client.Credential
 }
 
 type RepositoryConfiguration struct {

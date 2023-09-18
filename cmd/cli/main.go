@@ -16,9 +16,8 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.Level(configuration.LogLevel))
 
 	secretsToSync := ReadSecrets(configuration.SecretsFile, configuration.HashConfiguration)
-	credential := ReadCredential()
 
-	syncedSecretManager := createSyncedSecretManager(credential, configuration)
+	syncedSecretManager := createSyncedSecretManager(configuration)
 	updatedSecrets, err := syncedSecretManager.SyncSecrets(secretsToSync, configuration.DryRun)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error syncing secrets")
@@ -27,8 +26,8 @@ func main() {
 	output(updatedSecrets)
 }
 
-func createSyncedSecretManager(credential client.Credential, configuration Configuration) secrets.SyncedSecretManager {
-	client := client.CreateClient(credential)
+func createSyncedSecretManager(configuration Configuration) secrets.SyncedSecretManager {
+	client := client.CreateClient(configuration.DroneCredential)
 
 	var genericSecretsManager secrets.GenericSecretsManager
 	if configuration.RepositoryConfiguration != nil {
