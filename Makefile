@@ -26,7 +26,7 @@ KANIKO_EXECUTOR ?= docker run --rm -v ${PWD}:${PWD} -w ${PWD} gcr.io/kaniko-proj
 DOCKER_IMAGE_NAME := colin-nolan/$(BINARY_NAME):$(VERSION)
 TARGET_PLATFORM ?= $(if $(filter darwin,$(GOOS)),linux/$(GOARCH),$(GOOS)/$(GOARCH))
 TARGET_PLATFORMS ?= $(TARGET_PLATFORM)
-IMAGE_OUTPUT_LOCATION ?= $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(TARGET_PLATFORM).tar
+IMAGE_OUTPUT_LOCATION ?= $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(subst /,-,$(TARGET_PLATFORM)).tar
 IMAGE_OUTPUT_LOCATIONS := $(foreach target_platform,$(TARGET_PLATFORMS),$(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(subst /,-,$(target_platform)).tar)
 MULTIARCH_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/multiarch
 
@@ -34,7 +34,7 @@ SHELL := /bin/bash
 
 all: build
 
-build: 
+build:
 	iterations=0; \
 	for target_build in $(TARGET_BUILDS); do \
 		iterations=$$(($${iterations} + 1)); \

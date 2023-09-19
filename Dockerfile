@@ -3,7 +3,7 @@ FROM docker.io/golang:alpine as builder
 ARG TARGETARCH
 RUN echo $TARGETARCH
 
-RUN apk add --no-cache make
+RUN apk add --no-cache bash make
 
 WORKDIR /build
 
