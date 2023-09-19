@@ -220,7 +220,7 @@ local build_pipeline = {
         name: 'build-multiarch-image',
         image: 'alpine',
         commands: create_setup_commands(['bash', 'jq', 'skopeo']) + [
-          'make build-image-multiarch TARGET_PLATFORMS="%s"' % [target_platforms],
+          'make build-image-multiarch TARGET_PLATFORMS="%s"' % [std.join(' ', target_platforms)],
         ],
         depends_on: find_build_steps(image_build_step_name_prefix, build_pipeline.steps),
         when: {
