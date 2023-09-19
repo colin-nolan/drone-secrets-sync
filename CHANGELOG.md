@@ -1,5 +1,11 @@
 # Drone Secrets Sync
 
+## \[1.4.0\] (unreleased)
+
+### Added
+
+- Dawin builds to release.
+
 ## \[1.3.0\] (2023-09-18)
 
 ### Added

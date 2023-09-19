@@ -142,7 +142,11 @@ Global options:
 #### Executable
 
 ```shell
+# Compile for GOOS and GOARCH of build machine
 make build
+
+# Compile for multiple targets
+make build TARGET_BUILDS="linux/amd64 linux/arm64 linux/arm darwin/amd64 darwin/arm64"
 ```
 
 To run after building:
