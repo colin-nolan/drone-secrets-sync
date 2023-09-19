@@ -7,7 +7,7 @@ local make_commands_fail_on_error(commands) =
 local build_arch = 'arm64';
 
 local create_setup_commands(extra_apk_packages=[]) = make_commands_fail_on_error([
-  'apk add --update-cache git go make %s' % std.join(' ', extra_apk_packages),
+  'apk add --update-cache bash git go make %s' % std.join(' ', extra_apk_packages),
   'git config --global --add safe.directory "$${PWD}"',
 ]);
 
@@ -137,35 +137,34 @@ local test_pipeline = {
 };
 
 // --------- Build Pipeline ---------
-local supported_os_list = ['linux'];
-local supported_arch_list = ['arm', 'arm64', 'amd64'];
-local supported_os_arch_pairs = [
-  [os, arch]
-  for os in supported_os_list
-  for arch in supported_arch_list
-];
+local target_builds = ['linux/arm', 'linux/arm64', 'linux/amd64', 'darwin/amd64', 'darwin/arm64'];
+local target_platforms = ['linux/arm', 'linux/arm64', 'linux/amd64'];
 
-local tag_if_not_build_architecture(architecture) = if architecture != build_arch then { when: { event: ['tag'] } } else {};
+local run_only_on_tag_if_not_build_architecture(architecture) = if architecture != build_arch then { when: { event: ['tag'] } } else {};
 
 local binary_build_step_name_prefix = 'build-binary_';
-local binary_build_step(os, architecture) = {
-  name: '%s%s-%s' % [binary_build_step_name_prefix, os, architecture],
-  image: 'golang:alpine',
-  commands: create_setup_commands() + [
-    'make build GOOS=%s GOARCH=%s' % [os, architecture],
-  ],
-  depends_on: [],
-} + tag_if_not_build_architecture(architecture);
+local binary_build_step(target) =
+  local architecture = std.split(target, '/')[1];
+  {
+    name: '%s%s' % [binary_build_step_name_prefix, std.strReplace(target, '/', '-')],
+    image: 'golang:alpine',
+    commands: create_setup_commands() + [
+      'make build TARGET_BUILD=%s' % [target],
+    ],
+    depends_on: [],
+  } + run_only_on_tag_if_not_build_architecture(architecture);
 
 local image_build_step_name_prefix = 'build-image_';
-local image_build_step(os, architecture) = {
-  name: '%s%s-%s' % [image_build_step_name_prefix, os, architecture],
-  image: 'golang:alpine',
-  commands: create_setup_commands() + [
-    'make build-image GOOS=%s GOARCH=%s KANIKO_EXECUTOR=build/third-party/kaniko/out/executor' % [os, architecture],
-  ],
-  depends_on: ['build-kaniko-tool'],
-} + tag_if_not_build_architecture(architecture);
+local image_build_step(platform) =
+  local architecture = std.split(platform, '/')[1];
+  {
+    name: '%s%s' % [image_build_step_name_prefix, std.strReplace(platform, '/', '-')],
+    image: 'golang:alpine',
+    commands: create_setup_commands() + [
+      'make build-image TARGET_PLATFORM=%s KANIKO_EXECUTOR=build/third-party/kaniko/out/executor' % [platform],
+    ],
+    depends_on: ['build-kaniko-tool'],
+  } + run_only_on_tag_if_not_build_architecture(architecture);
 
 local create_image_publish_step(name_postfix, tag_expression) = {
   name: 'publish-image-%s' % name_postfix,
@@ -198,7 +197,7 @@ local build_pipeline = {
     arch: build_arch,
   },
   steps:
-    [binary_build_step(x[0], x[1]) for x in supported_os_arch_pairs] +
+    [binary_build_step(target_build) for target_build in target_builds] +
     [{
       // Unfortunately, we cannot use the official kaniko image for the image builds because Drone CI converts commands
       // into a shell script and the kaniko image does not have a shell (https://docs.drone.io/pipeline/docker/syntax/steps/#commands)
@@ -215,7 +214,7 @@ local build_pipeline = {
       ],
       depends_on: [],
     }] +
-    [image_build_step(x[0], x[1]) for x in supported_os_arch_pairs] +
+    [image_build_step(target_platform) for target_platform in target_platforms] +
     [
       {
         name: 'build-multiarch-image',
