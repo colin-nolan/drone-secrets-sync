@@ -15,18 +15,18 @@ drone-secrets-sync org octocat secrets.json
 
 ```shell
 # Synchronise multiple repository secrets from JSON map on stdin
-echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
+echo '{"some-secret": "example", "other-secret": "value"}' \
     | drone-secrets-sync repo octocat/hello-world
 
 # Synchronise multiple organisation secrets from JSON map on stdin
-echo '{"SOME_SECRET": "example", "OTHER_SECRET": "value"}' \
+echo '{"some-secret": "example", "other-secret": "value"}' \
     | drone-secrets-sync org octocat
 ```
 
 The tool will output what secrets have changed, e.g.
 
 ```json
-["SOME_SECRET","OTHER_SECRET"]
+["some-secret","other-secret"]
 ```
 
 The Drone CI API does not provide access to secret values. Therefore, to allow the determination as to whether a secret already contains the required value, two secrets are created:
@@ -39,11 +39,11 @@ drone secret ls octocat/hello-world
 ```
 
 ```text
-SECRET 
+secret 
 Pull Request Read:  false
 Pull Request Write: false
 
-SECRET___e861b26001c00803bb492889c1cf3faaf5a093ebc59f2c6838c7e10edfae4d0a 
+secret___e861b26001c00803bb492889c1cf3faaf5a093ebc59f2c6838c7e10edfae4d0a 
 Pull Request Read:  false
 Pull Request Write: false
 ```
