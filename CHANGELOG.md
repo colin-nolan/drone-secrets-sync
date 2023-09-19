@@ -1,5 +1,11 @@
 # Drone Secrets Sync
 
+## \[1.4.1\] (2023-09-19)
+
+### Changed
+
+- Aligned `cmd` directory name to executable name to allow easy use of `go install`.
+
 ## \[1.4.0\] (2023-09-19)
 
 ### Added

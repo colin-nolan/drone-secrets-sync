@@ -62,6 +62,12 @@ curl -fsL https://github.com/colin-nolan/drone-secrets-sync/releases/latest/dron
 chmod +x /usr/local/bin/drone-secrets-sync
 ```
 
+### From GitHub
+
+```shell
+go install github.com/colin-nolan/drone-secrets-sync/cmd/drone-secrets-sync@
+```
+
 ### From Source
 
 ```shell
