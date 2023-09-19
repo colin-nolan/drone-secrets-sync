@@ -47,6 +47,23 @@ Be aware that exposing hashes makes it possible for an attacker that has gained 
 
 ## Installation
 
+### Docker
+
+```shell
+docker run --rm colinnolan/drone-secrets-sync --help
+```
+
+### GitHub Releases
+
+Release builds for various architectures can be [downloaded from GitHub](https://github.com/colin-nolan/drone-secrets-sync/releases/latest), e.g.
+
+```shell
+curl -fsL https://github.com/colin-nolan/drone-secrets-sync/releases/latest/drone-secrets-sync_linux-amd64 /usr/local/bin/drone-secrets-sync
+chmod +x /usr/local/bin/drone-secrets-sync
+```
+
+### From Source
+
 ```shell
 make install
 ```
