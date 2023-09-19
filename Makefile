@@ -14,7 +14,7 @@ TARGET_BUILDS ?= $(TARGET_BUILD)
 BINARY_NAME := drone-secrets-sync
 BINARY_OUTPUT_LOCATION ?= $(RELEASE_DIRECTORY)/$(BINARY_NAME)_$(subst /,-,$(TARGET_BUILD))
 BINARY_OUTPUT_BIN_COPY_LOCATION := bin/$(BINARY_NAME)
-ENTRYPOINT := $(wildcard cmd/cli/*.go)
+ENTRYPOINT := $(wildcard cmd/drone-secrets-sync/*.go)
 
 GO_FILES := $(shell find . -type f -name '*.go' ! -name '*_test.go' ! -path '*/build/*')
 MARKDOWN_FILES := $(shell find . -type f -name '*.md' ! -path '*/site-packages/*' ! -path '*build/*' ! -path './test/bats/*')
