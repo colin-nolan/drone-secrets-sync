@@ -35,17 +35,12 @@ The Drone CI API does not provide access to secret values. Therefore, to allow t
 1. A corresponding "hash secret", with a name that contains a salted hash of the secret value.
 
 ```shell
-drone secret ls octocat/hello-world
+drone secret ls --format '{{ .Name }}' octocat/hello-world
 ```
 
 ```text
-secret 
-Pull Request Read:  false
-Pull Request Write: false
-
-secret___e861b26001c00803bb492889c1cf3faaf5a093ebc59f2c6838c7e10edfae4d0a 
-Pull Request Read:  false
-Pull Request Write: false
+secret
+secret___e861b26001c00803bb492889c1cf3faaf5a093ebc59f2c6838c7e10edfae4d0a
 ```
 
 Be aware that exposing hashes makes it possible for an attacker that has gained access to the Drone API to brute force secret values offline. Hashes are generated using [Argon2](https://github.com/P-H-C/phc-winner-argon2/blob/master/argon2-specs.pdf) to make attacks more difficult. The memory and compute required to generate hashes can be configured.
