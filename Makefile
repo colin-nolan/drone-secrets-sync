@@ -27,7 +27,6 @@ DOCKER_IMAGE_NAME := colin-nolan/$(BINARY_NAME):$(VERSION)
 TARGET_PLATFORM ?= $(if $(filter darwin,$(GOOS)),linux/$(GOARCH),$(GOOS)/$(GOARCH))
 TARGET_PLATFORMS ?= $(TARGET_PLATFORM)
 IMAGE_OUTPUT_LOCATION ?= $(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(subst /,-,$(TARGET_PLATFORM)).tar
-IMAGE_OUTPUT_LOCATIONS := $(foreach target_platform,$(TARGET_PLATFORMS),$(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(subst /,-,$(target_platform)).tar)
 MULTIARCH_OUTPUT_LOCATION := $(RELEASE_DIRECTORY)/multiarch
 
 SHELL := /bin/bash
@@ -78,8 +77,10 @@ build-image-and-load: build-image
 #	   multi-image build rule, which will lead to `make` complaining of a target issue if one of the images
 #	   does not exist. To get around this, all `build` and `build-image` need to be changed to have multi-os/arch support.
 build-image-multiarch: $(MULTIARCH_OUTPUT_LOCATION)
-$(MULTIARCH_OUTPUT_LOCATION): $(IMAGE_OUTPUT_LOCATIONS)
-	scripts/create-multiarch-image.sh $(MULTIARCH_OUTPUT_LOCATION) $(IMAGE_OUTPUT_LOCATIONS)
+$(MULTIARCH_OUTPUT_LOCATION): build-image
+	scripts/create-multiarch-image.sh \
+		$(MULTIARCH_OUTPUT_LOCATION) \
+		$(foreach target_platform,$(TARGET_PLATFORMS),$(RELEASE_DIRECTORY)/$(BINARY_NAME)-image_$(subst /,-,$(target_platform)).tar)
 
 install: build
 	cp $(BINARY_OUTPUT_LOCATION) $(INSTALL_PATH)
