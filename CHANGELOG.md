@@ -1,10 +1,10 @@
 # Drone Secrets Sync
 
-## \[1.4.0\] (unreleased)
+## \[1.4.0\] (2023-09-19)
 
 ### Added
 
-- Dawin builds to release.
+- Darwin builds to release.
 
 ## \[1.3.0\] (2023-09-18)
 
