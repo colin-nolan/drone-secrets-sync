@@ -65,7 +65,7 @@ chmod +x /usr/local/bin/drone-secrets-sync
 ### From GitHub
 
 ```shell
-go install github.com/colin-nolan/drone-secrets-sync/cmd/drone-secrets-sync@
+go install github.com/colin-nolan/drone-secrets-sync/cmd/drone-secrets-sync@latest
 ```
 
 ### From Source
