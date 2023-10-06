@@ -8,11 +8,24 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// TODO: document
 type GenericSecretsManager interface {
+	// Return a list of all secret names.
+	// It returns a slice of strings representing the names of the secrets and an error if any occurs.
 	List() ([]string, error)
+
+	// Creates a new secret with the given name and value.
+	// It takes two parameters: secretName (name of the secret) and secretValue (value of the secret).
+	// It returns an error if the creation process fails.
 	Create(secretName string, secretValue string) error
+
+	// Updates an existing secret with the given name and new value.
+	// It takes two parameters: secretName (name of the secret) and secretValue (new value of the secret).
+	// It returns an error if the update operation fails.
 	Update(secretName string, secretValue string) error
+
+	// Deletes an existing secret based on its name.
+	// It takes one parameter: secretName (name of the secret).
+	// It returns an error if the deletion process fails.
 	Delete(secretName string) error
 }
 
